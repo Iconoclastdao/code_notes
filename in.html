@@ -1,0 +1,2171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="JSONFlow Editor & Runner for creating and executing workflows with natural language and code parsing">
+  <title>JSONFlow Editor & Runner</title>
+  <script  src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+  <script  src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+  <script  src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.25.6/babel.min.js"></script>
+  <script  src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs/loader.js"></script>
+  <script  src="https://cdn.jsdelivr.net/npm/jsonschema@1.4.1/dist/JSONSchema.min.js"></script>
+  <script  src="https://cdn.jsdelivr.net/npm/mermaid@11.2.1/dist/mermaid.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.13/dist/tailwind.min.css">
+  <style>
+    body { margin: 0; font-family: 'Inter', system-ui, sans-serif; }
+    #editor, #nlEditor, #codeEditor { height: 300px; min-height: 200px; }
+    .monaco-editor .monaco-editor-background { background-color: #1e1e1e; }
+    .dark .monaco-editor .monaco-editor-background { background-color: #1e1e1e; }
+    .transition-colors { transition: background-color 0.3s ease, color 0.3s ease; }
+    @media (max-width: 640px) {
+      #editor, #nlEditor, #codeEditor { height: 200px; }
+    }
+  </style>
+</head>
+<body class="transition-colors bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback, useMemo } = React;
+
+    // JSONFlow Schema (unchanged, included for validation)
+    const jsonFlowSchema = {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "JSONFlow Ultimate Workflow Schema",
+      "description": "A production-ready DSL for defining interoperable workflows integrating blockchain, AI, quantum computing, UI, and game development with robust scripting and verification.",
+      "type": "object",
+      "required": ["function", "schema", "steps", "metadata"],
+      "properties": {
+        "function": {
+          "type": "string",
+          "description": "Unique workflow identifier adhering to Solidity naming conventions for cross-platform compatibility.",
+          "minLength": 1,
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$"
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "schema_version": {
+              "type": "string",
+              "pattern": "^\\d+\\.\\d+\\.\\d+$",
+              "description": "Semantic version of the JSONFlow schema (e.g., '1.2.0')."
+            },
+            "version": {
+              "type": "string",
+              "pattern": "^\\d+\\.\\d+\\.\\d+$",
+              "description": "Workflow version."
+            },
+            "author": { "type": "string", "minLength": 1 },
+            "description": { "type": "string", "minLength": 1 },
+            "created": { "type": "string", "format": "date-time" },
+            "updated": { "type": "string", "format": "date-time" },
+            "tags": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "uniqueItems": true
+            },
+            "mermaid": {
+              "type": "string",
+              "description": "Mermaid diagram for workflow visualization, encoded as a string."
+            },
+            "target_languages": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["solidity", "cairo", "rust", "python", "javascript", "typescript", "go", "java", "kotlin", "c++"]
+              },
+              "uniqueItems": true,
+              "description": "Supported languages for code generation."
+            },
+            "game_engines": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["unity", "unreal", "godot", "bevy", "custom"]
+              },
+              "uniqueItems": true,
+              "description": "Supported game engines."
+            },
+            "dependencies": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+                  "hash": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" },
+                  "type": { "type": "string", "enum": ["library", "game_library", "asset", "contract"] },
+                  "source": { "type": "string", "format": "uri", "description": "URI to dependency source." }
+                },
+                "required": ["version", "type", "hash"],
+                "additionalProperties": false
+              },
+              "description": "External dependencies with version, hash, and type for integrity."
+            }
+          },
+          "required": ["schema_version", "version", "author", "description"],
+          "additionalProperties": false,
+          "description": "Metadata for versioning, authorship, and dependency management."
+        },
+        "ui": {
+          "$ref": "#/$defs/ui",
+          "description": "Global UI configuration supporting React and game-specific interfaces."
+        },
+        "access_policy": {
+          "type": "object",
+          "properties": {
+            "roles": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "uniqueItems": true,
+              "description": "Roles authorized to execute the workflow."
+            },
+            "permissions": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "uniqueItems": true,
+              "description": "Required permissions."
+            },
+            "policy_engine": {
+              "type": "string",
+              "enum": ["opa", "custom"],
+              "description": "Policy engine for access control (e.g., Open Policy Agent)."
+            }
+          },
+          "required": ["roles", "permissions"],
+          "additionalProperties": false,
+          "description": "Access control policy for workflow execution."
+        },
+        "game": {
+          "type": "object",
+          "properties": {
+            "engine": {
+              "type": "string",
+              "enum": ["unity", "unreal", "godot", "bevy", "custom"],
+              "description": "Target game engine."
+            },
+            "platforms": {
+              "type": "array",
+              "items": { "type": "string", "enum": ["pc", "console", "mobile", "web", "vr", "ar"] },
+              "uniqueItems": true,
+              "description": "Target platforms."
+            },
+            "asset_pipeline": {
+              "type": "object",
+              "properties": {
+                "formats": {
+                  "type": "array",
+                  "items": { "type": "string", "enum": ["fbx", "gltf", "png", "jpg", "wav", "mp3", "ogg"] },
+                  "uniqueItems": true,
+                  "description": "Supported asset formats."
+                },
+                "preprocessors": {
+                  "type": "array",
+                  "items": { "type": "string", "minLength": 1 },
+                  "uniqueItems": true,
+                  "description": "Asset preprocessing tools or scripts."
+                }
+              },
+              "required": ["formats"],
+              "additionalProperties": false
+            },
+            "multiplayer": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string", "enum": ["p2p", "client-server", "hybrid"] },
+                "max_players": { "type": "integer", "minimum": 1 },
+                "network_protocol": { "type": "string", "enum": ["udp", "tcp", "websocket", "webrtc"] },
+                "latency_tolerance": { "type": "integer", "minimum": 0, "description": "Max latency in ms." }
+              },
+              "required": ["type", "max_players"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["engine", "platforms"],
+          "additionalProperties": false,
+          "description": "Game development configuration."
+        },
+        "schema": {
+          "type": "object",
+          "required": ["inputs", "context", "outputs"],
+          "properties": {
+            "inputs": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "required": ["type"],
+                "properties": {
+                  "type": { "type": "string", "enum": ["string", "integer", "number", "boolean", "object", "array", "null"] },
+                  "default": {
+                    "anyOf": [
+                      { "type": "string" },
+                      { "type": "integer" },
+                      { "type": "number" },
+                      { "type": "boolean" },
+                      { "type": "object" },
+                      { "type": "array" },
+                      { "type": "null" }
+                    ]
+                  },
+                  "description": { "type": "string", "minLength": 1 },
+                  "nl_noun": {
+                    "oneOf": [
+                      { "type": "string", "minLength": 1 },
+                      { "type": "object", "additionalProperties": { "type": "string", "minLength": 1 } }
+                    ],
+                    "description": "Natural language noun for localization."
+                  },
+                  "nl_description": {
+                    "oneOf": [
+                      { "type": "string", "minLength": 1 },
+                      { "type": "object", "additionalProperties": { "type": "string", "minLength": 1 } }
+                    ],
+                    "description": "Natural language description for localization."
+                  },
+                  "constraints": {
+                    "type": "object",
+                    "properties": {
+                      "minLength": { "type": "integer", "minimum": 0 },
+                      "maxLength": { "type": "integer", "minimum": 0 },
+                      "pattern": { "type": "string", "minLength": 1 },
+                      "minimum": { "type": "number" },
+                      "maximum": { "type": "number" },
+                      "enum": {
+                        "type": "array",
+                        "items": { "type": ["string", "number", "boolean"] },
+                        "minItems": 1
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "ui": { "$ref": "#/$defs/ui" }
+                },
+                "additionalProperties": false
+              }
+            },
+            "context": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "required": ["type", "source"],
+                "properties": {
+                  "type": { "type": "string", "enum": ["string", "integer", "number", "boolean", "object", "array", "null"] },
+                  "nl_noun": {
+                    "oneOf": [
+                      { "type": "string", "minLength": 1 },
+                      { "type": "object", "additionalProperties": { "type": "string", "minLength": 1 } }
+                    ]
+                  },
+                  "nl_description": {
+                    "oneOf": [
+                      { "type": "string", "minLength": 1 },
+                      { "type": "object", "additionalProperties": { "type": "string", "minLength": 1 } }
+                    ]
+                  },
+                  "source": {
+                    "type": "string",
+                    "enum": ["env", "config", "blockchain", "external_api", "game_state", "player_input", "database"]
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "outputs": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "required": ["type"],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": ["string", "integer", "number", "boolean", "object", "array", "null", "game_state", "render_output", "physics_state"]
+                  },
+                  "description": { "type": "string", "minLength": 1 },
+                  "nl_noun": {
+                    "oneOf": [
+                      { "type": "string", "minLength": 1 },
+                      { "type": "object", "additionalProperties": { "type": "string", "minLength": 1 } }
+                    ]
+                  },
+                  "nl_description": {
+                    "oneOf": [
+                      { "type": "string", "minLength": 1 },
+                      { "type": "object", "additionalProperties": { "type": "string", "minLength": 1 } }
+                    ]
+                  },
+                  "ui": { "$ref": "#/$defs/ui" }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "context": {
+          "type": "object",
+          "default": {},
+          "additionalProperties": false,
+          "description": "Runtime context data, restricted for security."
+        },
+        "invariants": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["condition", "message"],
+            "properties": {
+              "condition": { "$ref": "#/$defs/expr" },
+              "message": { "type": "string", "minLength": 1 },
+              "severity": { "type": "string", "enum": ["error", "warning", "info"], "default": "error" },
+              "verification_tool": {
+                "type": "string",
+                "enum": ["certora", "scribble", "mythril"],
+                "description": "Tool for formal verification."
+              }
+            },
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "description": "Invariants for formal verification."
+        },
+        "tests": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "type", "inputs", "expected"],
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "type": {
+                "type": "string",
+                "enum": ["example", "property", "fuzz"],
+                "description": "Test type: example-based, property-based, or fuzz testing."
+              },
+              "inputs": { "type": "object" },
+              "expected": { "type": "object" },
+              "context": { "type": "object" },
+              "description": { "type": "string", "minLength": 1 },
+              "properties": {
+                "type": "array",
+                "items": { "$ref": "#/$defs/expr" },
+                "minItems": 1,
+                "description": "Properties for property-based or fuzz testing."
+              }
+            },
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "description": "Comprehensive test cases."
+        },
+        "steps": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/step" },
+          "minItems": 1
+        },
+        "attestation": {
+          "type": "object",
+          "properties": {
+            "signers": {
+              "type": "array",
+              "items": { "type": "string", "pattern": "^0x[a-fA-F0-9]{40}$" },
+              "uniqueItems": true
+            },
+            "signature": { "type": "string", "pattern": "^0x[a-fA-F0-9]+$" },
+            "hash": { "type": "string", "pattern": "^0x[a-fA-F0-9]{64}$" }
+          },
+          "required": ["signers", "signature", "hash"],
+          "additionalProperties": false,
+          "description": "Cryptographic attestation for workflow integrity."
+        },
+        "history": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "timestamp": { "type": "string", "format": "date-time" },
+              "author": { "type": "string", "minLength": 1 },
+              "change_summary": { "type": "string", "minLength": 1 },
+              "diff": { "type": "string", "description": "JSON patch or diff string." }
+            },
+            "required": ["timestamp", "author", "change_summary"],
+            "additionalProperties": false
+          },
+          "description": "Audit trail of workflow changes."
+        },
+        "execution_policy": {
+          "type": "object",
+          "properties": {
+            "max_runs_per_minute": { "type": "integer", "minimum": 1, "default": 60 },
+            "max_concurrent_runs": { "type": "integer", "minimum": 1, "default": 10 },
+            "priority": { "type": "string", "enum": ["low", "medium", "high"], "default": "medium" }
+          },
+          "required": ["max_runs_per_minute", "max_concurrent_runs"],
+          "additionalProperties": false,
+          "description": "Execution rate limiting and prioritization."
+        },
+        "secrets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "source": { "type": "string", "enum": ["env", "vault", "kms", "secret_manager"] },
+              "key_id": { "type": "string", "description": "Identifier for key in source." }
+            },
+            "required": ["name", "source"],
+            "additionalProperties": false
+          },
+          "uniqueItems": true,
+          "description": "Secure references to secrets."
+        },
+        "subworkflows": {
+          "type": "array",
+          "items": { "type": "string", "format": "uri", "description": "URI to subworkflow." },
+          "uniqueItems": true,
+          "description": "References to subworkflows for modularity."
+        },
+        "verification_results": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "tool": { "type": "string", "minLength": 1 },
+              "date": { "type": "string", "format": "date-time" },
+              "result": { "type": "string", "enum": ["success", "failure", "partial"] },
+              "properties_verified": {
+                "type": "array",
+                "items": { "type": "string", "minLength": 1 },
+                "uniqueItems": true
+              }
+            },
+            "required": ["tool", "date", "result"],
+            "additionalProperties": false
+          },
+          "description": "Formal verification results."
+        },
+        "resource_estimates": {
+          "type": "object",
+          "properties": {
+            "cpu": { "type": "number", "minimum": 0, "description": "CPU usage in cores." },
+            "memory": { "type": "number", "minimum": 0, "description": "Memory in MB." },
+            "storage": { "type": "number", "minimum": 0, "description": "Storage in MB." },
+            "network": { "type": "number", "minimum": 0, "description": "Network bandwidth in Mbps." }
+          },
+          "additionalProperties": false,
+          "description": "Estimated resource usage."
+        }
+      },
+      "additionalProperties": false,
+      "$defs": {
+        "ui": {
+          "type": "object",
+          "properties": {
+            "framework": {
+              "type": "string",
+              "enum": ["react", "vue", "svelte", "game"],
+              "default": "react",
+              "description": "UI framework."
+            },
+            "component": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Component name (e.g., 'TextField', 'HUD', '3DCanvas')."
+            },
+            "props": {
+              "type": "object",
+               "additionalProperties": true,
+              "description": "Component props, including game-specific properties."
+            },
+            "css": {
+              "type": "object",
+              "properties": {
+                "className": { "type": "string", "minLength": 1 },
+                "style": { "type": "object", "additionalProperties": true }
+              },
+              "additionalProperties": false
+            },
+            "game_ui": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string", "enum": ["hud", "menu", "3d", "vr", "ar"] },
+                "position": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+                "rotation": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+                "scale": { "type": "number", "minimum": 0 }
+              },
+              "required": ["type"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["framework", "component"],
+          "additionalProperties": false,
+          "description": "UI configuration for React, Vue, Svelte, or game interfaces."
+        },
+        "common_step_properties": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string", "minLength": 1, "description": "Unique step identifier." },
+            "on_error": { "$ref": "#/$defs/on_error" },
+            "nl_phrase": {
+              "oneOf": [
+                { "type": "string", "minLength": 1 },
+                { "type": "object", "additionalProperties": { "type": "string", "minLength": 1 } }
+              ],
+              "description": "Localized natural language description."
+            },
+            "access_control": {
+              "type": "object",
+              "properties": {
+                "roles": {
+                  "type": "array",
+                  "items": { "type": "string", "minLength": 1 },
+                  "uniqueItems": true
+                },
+                "permissions": {
+                  "type": "array",
+                  "items": { "type": "string", "minLength": 1 },
+                  "uniqueItems": true
+                }
+              },
+              "additionalProperties": false
+            },
+            "timeout": {
+              "type": "object",
+              "properties": {
+                "duration": { "type": "string", "pattern": "^\\d+[smh]$" },
+                "action": { "type": "string", "enum": ["skip", "retry", "fail"], "default": "fail" },
+                "max_retries": { "type": "integer", "minimum": 0, "default": 0 }
+              },
+              "required": ["duration"],
+              "additionalProperties": false
+            },
+            "ui": { "$ref": "#/$defs/ui" },
+            "resource_estimates": {
+              "type": "object",
+              "properties": {
+                "cpu": { "type": "number", "minimum": 0 },
+                "memory": { "type": "number", "minimum": 0 },
+                "storage": { "type": "number", "minimum": 0 },
+                "network": { "type": "number", "minimum": 0 }
+              },
+              "additionalProperties": false
+            }
+          },
+          "required": ["id"],
+          "additionalProperties": false
+        },
+        "step": {
+          "oneOf": [
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "set" },
+                    "target": { "type": "string", "minLength": 1 },
+                    "value": { "$ref": "#/$defs/expr" }
+                  },
+                  "required": ["type", "target", "value"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "if" },
+                    "condition": { "$ref": "#/$defs/expr" },
+                    "then": { "type": "array", "items": { "$ref": "#/$defs/step" }, "minItems": 1 },
+                    "else": { "type": "array", "items": { "$ref": "#/$defs/step" }, "minItems": 1 }
+                  },
+                  "required": ["type", "condition", "then"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "return" },
+                    "value": { "$ref": "#/$defs/expr" }
+                  },
+                  "required": ["type", "value"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "call" },
+                    "function": { "type": "string", "minLength": 1 },
+                    "args": { "type": "object", "additionalProperties": { "$ref": "#/$defs/expr" } },
+                    "target": { "type": "string", "minLength": 1 }
+                  },
+                  "required": ["type", "function", "args", "target"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "try" },
+                    "body": { "type": "array", "items": { "$ref": "#/$defs/step" }, "minItems": 1 },
+                    "catch": {
+                      "type": "object",
+                      "properties": {
+                        "error_var": { "type": "string", "minLength": 1 },
+                        "body": { "type": "array", "items": { "$ref": "#/$defs/step" }, "minItems": 1 }
+                      },
+                      "required": ["error_var", "body"],
+                      "additionalProperties": false
+                    },
+                    "finally": { "type": "array", "items": { "$ref": "#/$defs/step" }, "minItems": 1 }
+                  },
+                  "required": ["type", "body"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "while" },
+                    "condition": { "$ref": "#/$defs/expr" },
+                    "body": { "type": "array", "items": { "$ref": "#/$defs/step" }, "minItems": 1 },
+                    "max_iterations": { "type": "integer", "minimum": 1, "default": 1000 }
+                  },
+                  "required": ["type", "condition", "body"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "foreach" },
+                    "collection": { "$ref": "#/$defs/expr" },
+                    "iterator": { "type": "string", "minLength": 1 },
+                    "body": { "type": "array", "items": { "$ref": "#/$defs/step" }, "minItems": 1 }
+                  },
+                  "required": ["type", "collection", "iterator", "body"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "parallel" },
+                    "branches": {
+                      "type": "array",
+                      "items": { "type": "array", "items": { "$ref": "#/$defs/step" }, "minItems": 1 },
+                      "minItems": 1
+                    },
+                    "merge_strategy": {
+                      "type": "string",
+                      "enum": ["all", "first", "last"],
+                      "default": "all",
+                      "description": "How to merge parallel branch results."
+                    }
+                  },
+                  "required": ["type", "branches"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "assert" },
+                    "condition": { "$ref": "#/$defs/expr" },
+                    "message": { "type": "string", "minLength": 1 }
+                  },
+                  "required": ["type", "condition", "message"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "event" },
+                    "name": { "type": "string", "minLength": 1 },
+                    "params": { "type": "object", "additionalProperties": { "$ref": "#/$defs/expr" } }
+                  },
+                  "required": ["type", "name", "params"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "require_role" },
+                    "role": { "type": "string", "minLength": 1 }
+                  },
+                  "required": ["type", "role"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "ai_infer" },
+                    "model": { "type": "string", "minLength": 1 },
+                    "input": { "$ref": "#/$defs/expr" },
+                    "parameters": { "type": "object", "additionalProperties": true },
+                    "target": { "type": "string", "minLength": 1 }
+                  },
+                  "required": ["type", "model", "input", "target"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "ai_train" },
+                    "model": { "type": "string", "minLength": 1 },
+                    "data": { "$ref": "#/$defs/expr" },
+                    "parameters": { "type": "object", "additionalProperties": true },
+                    "target": { "type": "string", "minLength": 1 }
+                  },
+                  "required": ["type", "model", "data", "target"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "ai_classify" },
+                    "model": { "type": "string", "minLength": 1 },
+                    "input": { "$ref": "#/$defs/expr" },
+                    "parameters": { "type": "object", "additionalProperties": true },
+                    "target": { "type": "string", "minLength": 1 }
+                  },
+                  "required": ["type", "model", "input", "target"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "ai_embed" },
+                    "model": { "type": "string", "minLength": 1 },
+                    "input": { "$ref": "#/$defs/expr" },
+                    "parameters": { "type": "object", "additionalProperties": true },
+                    "target": { "type": "string", "minLength": 1 }
+                  },
+                  "required": ["type", "model", "input", "target"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "ai_explain" },
+                    "model": { "type": "string", "minLength": 1 },
+                    "input": { "$ref": "#/$defs/expr" },
+                    "parameters": { "type": "object", "additionalProperties": true },
+                    "target": { "type": "string", "minLength": 1 }
+                  },
+                  "required": ["type", "model", "input", "target"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "quantum_circuit" },
+                    "gates": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["gate", "target"],
+                        "properties": {
+                          "gate": {
+                            "type": "string",
+                            "enum": ["H", "X", "Y", "Z", "CNOT", "T", "S", "RX", "RY", "RZ", "SWAP", "TOFFOLI"]
+                          },
+                          "target": { "type": "array", "items": { "type": "integer", "minimum": 0 }, "minItems": 1 },
+                          "control": { "type": "array", "items": { "type": "integer", "minimum": 0 } },
+                          "parameters": { "type": "object", "additionalProperties": { "type": "number" } }
+                        },
+                        "additionalProperties": false
+                      },
+                      "minItems": 1
+                    },
+                    "qubits": { "type": "integer", "minimum": 1 },
+                    "target": { "type": "string", "minLength": 1 }
+                  },
+                  "required": ["type", "gates", "qubits", "target"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "quantum_measure" },
+                    "circuit": { "$ref": "#/$defs/expr" },
+                    "qubits": { "type": "array", "items": { "type": "integer", "minimum": 0 }, "minItems": 1 },
+                    "target": { "type": "string", "minLength": 1 }
+                  },
+                  "required": ["type", "circuit", "qubits", "target"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "quantum_algorithm" },
+                    "algorithm": { "type": "string", "enum": ["grover", "shor", "qft", "vqe", "qaoa"] },
+                    "parameters": { "type": "object", "additionalProperties": true },
+                    "target": { "type": "string", "minLength": 1 }
+                  },
+                  "required": ["type", "algorithm", "parameters", "target"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "blockchain_operation" },
+                    "chain": {
+                      "type": "string",
+                      "enum": ["ethereum", "solana", "starknet", "cosmos", "polkadot", "binance", "avalanche"]
+                    },
+                    "action": {
+                      "type": "string",
+                      "enum": ["transfer", "mint", "burn", "governance", "bridge", "flash_loan", "swap", "liquidate", "deploy_contract"]
+                    },
+                    "params": { "type": "object", "additionalProperties": true },
+                    "gas": {
+                      "type": "object",
+                      "properties": {
+                        "estimate": { "type": "boolean", "default": true },
+                        "limit": { "type": "integer", "minimum": 21000 },
+                        "max_fee_per_gas": { "type": "integer", "minimum": 0 },
+                        "priority_fee_per_gas": { "type": "integer", "minimum": 0 }
+                      },
+                      "additionalProperties": false
+                    },
+                    "replay_protection": {
+                      "type": "object",
+                      "properties": {
+                        "nonce": { "type": "string", "pattern": "^0x[a-fA-F0-9]+$" },
+                        "idempotency_key": { "type": "string", "minLength": 1 }
+                      },
+                      "additionalProperties": false
+                    },
+                    "target": { "type": "string", "minLength": 1 }
+                  },
+                  "required": ["type", "chain", "action", "params", "target"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "crypto_sign" },
+                    "algorithm": { "type": "string", "enum": ["ecdsa", "ed25519", "rsa", "schnorr"] },
+                    "data": { "$ref": "#/$defs/expr" },
+                    "key": { "$ref": "#/$defs/expr" },
+                    "target": { "type": "string", "minLength": 1 }
+                  },
+                  "required": ["type", "algorithm", "data", "key", "target"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "crypto_verify" },
+                    "algorithm": { "type": "string", "enum": ["ecdsa", "ed25519", "rsa", "schnorr"] },
+                    "data": { "$ref": "#/$defs/expr" },
+                    "signature": { "$ref": "#/$defs/expr" },
+                    "key": { "$ref": "#/$defs/expr" },
+                    "target": { "type": "string", "minLength": 1 }
+                  },
+                  "required": ["type", "algorithm", "data", "signature", "key", "target"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "regex_match" },
+                    "pattern": { "type": "string", "minLength": 1 },
+                    "input": { "$ref": "#/$defs/expr" },
+                    "target": { "type": "string", "minLength": 1 }
+                  },
+                  "required": ["type", "pattern", "input", "target"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "audit_log" },
+                    "message": { "type": "string", "minLength": 1 },
+                    "metadata": { "type": "object", "additionalProperties": true }
+                  },
+                  "required": ["type", "message"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "call_workflow" },
+                    "workflow": { "type": "string", "format": "uri" },
+                    "args": { "type": "object", "additionalProperties": { "$ref": "#/$defs/expr" } },
+                    "target": { "type": "string", "minLength": 1 }
+                  },
+                  "required": ["type", "workflow", "args", "target"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "type": "string", "pattern": "^custom_[a-zA-Z0-9_]+$" },
+                    "custom_properties": { "type": "object", "additionalProperties": true }
+                  },
+                  "required": ["type", "custom_properties"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "game_render" },
+                    "scene": { "$ref": "#/$defs/expr" },
+                    "camera": {
+                      "type": "object",
+                      "properties": {
+                        "position": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+                        "rotation": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+                        "fov": { "type": "number", "minimum": 0 }
+                      },
+                      "required": ["position"],
+                      "additionalProperties": false
+                    },
+                    "render_target": { "type": "string", "minLength": 1 }
+                  },
+                  "required": ["type", "scene", "render_target"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "game_physics" },
+                    "objects": { "type": "array", "items": { "$ref": "#/$defs/expr" }, "minItems": 1 },
+                    "simulation": {
+                      "type": "object",
+                      "properties": {
+                        "type": { "type": "string", "enum": ["rigid_body", "soft_body", "fluid"] },
+                        "gravity": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+                        "time_step": { "type": "number", "minimum": 0 }
+                      },
+                      "required": ["type"],
+                      "additionalProperties": false
+                    },
+                    "target": { "type": "string", "minLength": 1 }
+                  },
+                  "required": ["type", "objects", "simulation", "target"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "game_multiplayer_sync" },
+                    "state": { "$ref": "#/$defs/expr" },
+                    "sync_type": { "type": "string", "enum": ["state", "event", "delta"] },
+                    "peers": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1 },
+                    "target": { "type": "string", "minLength": 1 }
+                  },
+                  "required": ["type", "state", "sync_type", "peers", "target"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "game_input" },
+                    "input_type": { "type": "string", "enum": ["keyboard", "mouse", "controller", "touch", "vr", "ar"] },
+                    "bindings": {
+                      "type": "object",
+                      "additionalProperties": { "type": "string", "minLength": 1 },
+                      "minProperties": 1
+                    },
+                    "target": { "type": "string", "minLength": 1 }
+                  },
+                  "required": ["type", "input_type", "bindings", "target"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "game_animation" },
+                    "target_object": { "$ref": "#/$defs/expr" },
+                    "animation": {
+                      "type": "object",
+                      "properties": {
+                        "type": { "type": "string", "enum": ["skeletal", "keyframe", "procedural"] },
+                        "parameters": { "type": "object", "additionalProperties": true },
+                        "duration": { "type": "number", "minimum": 0 }
+                      },
+                      "required": ["type"],
+                      "additionalProperties": false
+                    },
+                    "target": { "type": "string", "minLength": 1 }
+                  },
+                  "required": ["type", "target_object", "animation", "target"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "script" },
+                    "language": {
+                      "type": "string",
+                      "enum": ["python", "javascript", "lua"],
+                      "default": "python",
+                      "description": "Scripting language."
+                    },
+                    "script": { "type": "string", "minLength": 1 },
+                    "target": { "type": "string", "minLength": 1 },
+                    "sandbox": {
+                      "type": "object",
+                      "properties": {
+                        "allowed_modules": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": ["math", "random", "datetime", "json", "pygame", "numpy", "mathjs", "lodash"]
+                          },
+                          "uniqueItems": true
+                        },
+                        "max_execution_time": { "type": "integer", "minimum": 1 },
+                        "max_memory": { "type": "integer", "minimum": 1024 }
+                      },
+                      "required": ["max_execution_time", "max_memory"],
+                      "additionalProperties": false
+                    },
+                    "inputs": {
+                      "type": "object",
+                      "additionalProperties": { "$ref": "#/$defs/expr" }
+                    }
+                  },
+                  "required": ["type", "language", "script", "target", "sandbox"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "crypto_operation" },
+                    "algorithm": {
+                      "type": "string",
+                      "enum": ["sha256", "sha3", "keccak256", "blake2b", "aes", "rsa", "ecdsa", "ed25519"]
+                    },
+                    "operation": {
+                      "type": "string",
+                      "enum": ["hash", "encrypt", "decrypt", "sign", "verify"]
+                    },
+                    "input": { "$ref": "#/$defs/expr" },
+                    "key": { "$ref": "#/$defs/expr" },
+                    "parameters": { "type": "object", "additionalProperties": true },
+                    "target": { "type": "string", "minLength": 1 }
+                  },
+                  "required": ["type", "algorithm", "operation", "input", "target"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "entropy_commit" },
+                    "user_id": { "type": "string", "minLength": 1 },
+                    "seed": { "type": "string", "minLength": 1 },
+                    "temperature": { "type": "number", "minimum": 0 },
+                    "fee": { "type": "number", "minimum": 0 },
+                    "commitment": { "type": "string", "pattern": "^0x[a-fA-F0-9]{64}$" },
+                    "target": { "type": "string", "minLength": 1 }
+                  },
+                  "required": ["type", "user_id", "commitment", "target"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "entropy_reveal" },
+                    "user_id": { "type": "string", "minLength": 1 },
+                    "commitment": { "type": "string", "pattern": "^0x[a-fA-F0-9]{64}$" },
+                    "target": { "type": "string", "minLength": 1 }
+                  },
+                  "required": ["type", "user_id", "commitment", "target"]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/common_step_properties" },
+                {
+                  "properties": {
+                    "type": { "const": "shard_deploy" },
+                    "user_id": { "type": "string", "minLength": 1 },
+                    "seed": { "type": "string", "minLength": 1 },
+                    "temperature": { "type": "number", "minimum": 0 },
+                    "fee": { "type": "number", "minimum": 0 },
+                    "chain": {
+                      "type": "string",
+                      "enum": ["ethereum", "solana", "starknet", "cosmos", "polkadot", "binance", "avalanche"]
+                    },
+                    "params": { "type": "object", "additionalProperties": true },
+                    "target": { "type": "string", "minLength": 1 }
+                  },
+                  "required": ["type", "user_id", "target"]
+                }
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "expr": {
+          "type": "object",
+          "properties": {
+            "get": { "type": "string", "pattern": "^[a-zA-Z0-9_\\.]+$", "minLength": 1 },
+            "value": { "type": ["string", "number", "boolean", "object", "array", "null"] },
+            "add": { "type": "array", "items": { "$ref": "#/$defs/valueOrExpr" }, "minItems": 2 },
+            "subtract": { "type": "array", "items": { "$ref": "#/$defs/valueOrExpr" }, "minItems": 2 },
+            "multiply": { "type": "array", "items": { "$ref": "#/$defs/valueOrExpr" }, "minItems": 2 },
+            "divide": { "type": "array", "items": { "$ref": "#/$defs/valueOrExpr" }, "minItems": 2 },
+            "compare": {
+              "type": "object",
+              "required": ["left", "op", "right"],
+              "properties": {
+                "left": { "$ref": "#/$defs/valueOrExpr" },
+                "op": { "type": "string", "enum": ["<", ">", "===", "<=", ">=", "!=="] },
+                "right": { "$ref": "#/$defs/valueOrExpr" }
+              },
+              "additionalProperties": false
+            },
+            "not": { "$ref": "#/$defs/expr" },
+            "and": { "type": "array", "items": { "$ref": "#/$defs/expr" }, "minItems": 2 },
+            "or": { "type": "array", "items": { "$ref": "#/$defs/expr" }, "minItems": 2 },
+            "concat": { "type": "array", "items": { "$ref": "#/$defs/valueOrExpr" }, "minItems": 2 },
+            "hash": {
+              "type": "object",
+              "required": ["algorithm", "input"],
+              "properties": {
+                "algorithm": { "type": "string", "enum": ["sha256", "sha3", "keccak256", "blake2b"] },
+                "input": { "$ref": "#/$defs/valueOrExpr" }
+              },
+              "additionalProperties": false
+            },
+            "regex": {
+              "type": "object",
+              "required": ["pattern", "input"],
+              "properties": {
+                "pattern": { "type": "string", "minLength": 1 },
+                "input": { "$ref": "#/$defs/valueOrExpr" }
+              },
+              "additionalProperties": false
+            },
+            "map": {
+              "type": "object",
+              "required": ["collection", "operation"],
+              "properties": {
+                "collection": { "$ref": "#/$defs/expr" },
+                "operation": { "$ref": "#/$defs/expr" }
+              },
+              "additionalProperties": false
+            },
+            "filter": {
+              "type": "object",
+              "required": ["collection", "condition"],
+              "properties": {
+                "collection": { "$ref": "#/$defs/expr" },
+                "condition": { "$ref": "#/$defs/expr" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false,
+          "description": "Secure expression language."
+        },
+        "valueOrExpr": {
+          "anyOf": [
+            { "type": "string" },
+            { "type": "number" },
+            { "type": "boolean" },
+            { "type": "object" },
+            { "type": "array" },
+            { "type": "null" },
+            { "$ref": "#/$defs/expr" }
+          ]
+        },
+        "on_error": {
+          "type": "object",
+          "properties": {
+            "step_id": { "type": "string", "minLength": 1 },
+            "body": { "type": "array", "items": { "$ref": "#/$defs/step" }, "minItems": 1 },
+            "error_type": {
+              "type": "string",
+              "enum": ["parse_error", "validation_error", "execution_error", "codegen_error"],
+              "description": "Specific error types for parsing and code generation."
+            },
+            "retry_policy": {
+              "type": "object",
+              "properties": {
+                "max_attempts": { "type": "integer", "minimum": 1, "default": 3 },
+                "backoff": { "type": "string", "pattern": "^\\d+[smh]$", "default": "1s" }
+              },
+              "additionalProperties": false,
+              "description": "Retry policy for recoverable errors."
+            }
+          },
+          "oneOf": [
+            { "required": ["step_id"] },
+            { "required": ["body"] }
+          ],
+          "additionalProperties": false,
+          "description": "Enhanced error handling for parsing and code generation with retry policies."
+        },
+        "parsed_workflow": {
+          "type": "object",
+          "properties": {
+            "workflow": { "type": "object", "description": "Parsed JSON workflow." },
+            "validation_result": {
+              "type": "object",
+              "properties": {
+                "is_valid": { "type": "boolean" },
+                "errors": { "type": "array", "items": { "type": "string" } }
+              },
+              "required": ["is_valid"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["workflow", "validation_result"],
+          "additionalProperties": false,
+          "description": "Structure for parsed and validated workflow data."
+        },
+        "expr": {
+          "type": "object",
+          "properties": {
+            "get": { "type": "string", "pattern": "^[a-zA-Z0-9_\\.]+$", "minLength": 1 },
+            "value": { "type": ["string", "number", "boolean", "object", "array", "null"] },
+            "add": { "type": "array", "items": { "$ref": "#/$defs/valueOrExpr" }, "minItems": 2 },
+            "subtract": { "type": "array", "items": { "$ref": "#/$defs/valueOrExpr" }, "minItems": 2 },
+            "multiply": { "type": "array", "items": { "$ref": "#/$defs/valueOrExpr" }, "minItems": 2 },
+            "divide": { "type": "array", "items": { "$ref": "#/$defs/valueOrExpr" }, "minItems": 2 },
+            "compare": {
+              "type": "object",
+              "required": ["left", "op", "right"],
+              "properties": {
+                "left": { "$ref": "#/$defs/valueOrExpr" },
+                "op": { "type": "string", "enum": ["<", ">", "===", "<=", ">=", "!=="] },
+                "right": { "$ref": "#/$defs/valueOrExpr" }
+              },
+              "additionalProperties": false
+            },
+            "not": { "$ref": "#/$defs/expr" },
+            "and": { "type": "array", "items": { "$ref": "#/$defs/expr" }, "minItems": 2 },
+            "or": { "type": "array", "items": { "$ref": "#/$defs/expr" }, "minItems": 2 },
+            "concat": { "type": "array", "items": { "$ref": "#/$defs/valueOrExpr" }, "minItems": 2 },
+            "hash": {
+              "type": "object",
+              "required": ["algorithm", "input"],
+              "properties": {
+                "algorithm": { "type": "string", "enum": ["sha256", "sha3", "keccak256", "blake2b"] },
+                "input": { "$ref": "#/$defs/valueOrExpr" }
+              },
+              "additionalProperties": false
+            },
+            "regex": {
+              "type": "object",
+              "required": ["pattern", "input"],
+              "properties": {
+                "pattern": { "type": "string", "minLength": 1 },
+                "input": { "$ref": "#/$defs/valueOrExpr" }
+              },
+              "additionalProperties": false
+            },
+            "map": {
+              "type": "object",
+              "required": ["collection", "operation"],
+              "properties": {
+                "collection": { "$ref": "#/$defs/expr" },
+                "operation": { "$ref": "#/$defs/expr" }
+              },
+              "additionalProperties": false
+            },
+            "filter": {
+              "type": "object",
+              "required": ["collection", "condition"],
+              "properties": {
+                "collection": { "$ref": "#/$defs/expr" },
+                "condition": { "$ref": "#/$defs/expr" }
+              },
+              "additionalProperties": false
+            },
+            "parse_json": {
+              "type": "object",
+              "required": ["input"],
+              "properties": {
+                "input": { "$ref": "#/$defs/valueOrExpr" },
+                "schema_ref": { "type": "string", "description": "Optional schema for validation." }
+              },
+              "additionalProperties": false,
+              "description": "Parses a JSON string into a structured object."
+            }
+          },
+          "additionalProperties": false,
+          "description": "Extended expression language with JSON parsing."
+        },
+        "valueOrExpr": {
+          "anyOf": [
+            { "type": "string" },
+            { "type": "number" },
+            { "type": "boolean" },
+            { "type": "object" },
+            { "type": "array" },
+            { "type": "null" },
+            { "$ref": "#/$defs/expr" },
+            {
+              "type": "object",
+              "properties": {
+                "parsed_workflow": { "$ref": "#/$defs/parsed_workflow" },
+                "generated_code": { "type": "string" }
+              },
+              "additionalProperties": false,
+              "description": "Extended to support parsed workflows and generated code."
+            }
+          ],
+          "description": "Extended to include parsed workflow and code generation outputs."
+        }
+      }
+    };
+
+    // Input Sanitization
+    const sanitizeInput = (input) => {
+      return input.replace(/[<>{}]/g, '').substring(0, 10000);
+    };
+
+    // NL Parser: Converts natural language to JSONFlow schema
+    const parseNLToSchema = (nlInput, setOutput) => {
+      try {
+        const sanitizedInput = sanitizeInput(nlInput);
+        const lines = sanitizedInput.trim().split('\n');
+        const workflow = {
+          function: '',
+          metadata: {
+            schema_version: '1.1.0',
+            version: '1.0.0',
+            author: 'User',
+            description: '',
+            created: new Date().toISOString(),
+            updated: new Date().toISOString(),
+            tags: ['generated'],
+            target_languages: ['javascript']
+          },
+          schema: { inputs: {}, context: {}, outputs: {} },
+          steps: [],
+          context: {},
+          invariants: [],
+          tests: []
+        };
+        let stepId = 1;
+
+        const patterns = [
+          {
+            regex: /^Workflow named (\w+) that takes (\w+) as (\w+)$/,
+            handler: (match) => {
+              workflow.function = match[1];
+              workflow.schema.inputs[match[2]] = { type: match[3], description: `${match[2]} input` };
+              workflow.context[match[2]] = match[3] === 'number' ? 0 : match[3] === 'string' ? '' : null;
+            }
+          },
+          {
+            regex: /^Set (\w+) to (.+)$/,
+            handler: (match) => {
+              workflow.steps.push({
+                id: `step${stepId++}`,
+                type: 'set',
+                target: match[1],
+                value: parseNLValue(match[2])
+              });
+            }
+          },
+          {
+            regex: /^If (\w+) is greater than (\d+), then return (\w+), else return (\w+)$/,
+            handler: (match) => {
+              workflow.steps.push({
+                id: `step${stepId++}`,
+                type: 'if',
+                condition: {
+                  compare: {
+                    left: { get: match[1] },
+                    op: '>',
+                    right: { value: parseFloat(match[2]) }
+                  }
+                },
+                then: [{ id: `step${stepId++}`, type: 'return', value: { value: match[3] } }],
+                else: [{ id: `step${stepId++}`, type: 'return', value: { value: match[4] } }]
+              });
+            }
+          },
+          {
+            regex: /^Output (\w+) as (\w+)$/,
+            handler: (match) => {
+              workflow.schema.outputs[match[1]] = { type: match[2], description: `${match[1]} output` };
+            }
+          }
+        ];
+
+        for (const line of lines) {
+          let matched = false;
+          for (const pattern of patterns) {
+            const match = line.match(pattern.regex);
+            if (match) {
+              pattern.handler(match);
+              matched = true;
+              break;
+            }
+          }
+          if (!matched) {
+            setOutput(prev => [...prev, `NL Parse Warning: Unrecognized line: ${line}`]);
+          }
+        }
+
+        workflow.metadata.description = `Generated workflow from NL: ${sanitizedInput.substring(0, 50)}...`;
+        return workflow;
+      } catch (e) {
+        setOutput(prev => [...prev, `NL Parse Error: ${e.message}`]);
+        return null;
+      }
+    };
+
+    const parseNLValue = (value) => {
+      if (!isNaN(value)) return { value: parseFloat(value) };
+      if (value.match(/^\w+$/)) return { get: value };
+      return { value };
+    };
+
+    // Schema to Code Generator: Converts JSONFlow schema to JavaScript
+    const schemaToCode = (workflow, setOutput) => {
+      try {
+        let code = `function ${workflow.function}(context) {\n`;
+        code += `  let state = { ...context };\n`;
+
+        for (const step of workflow.steps) {
+          switch (step.type) {
+            case 'set':
+              code += `  state.${step.target} = ${exprToCode(step.value, 'state')};\n`;
+              break;
+            case 'if':
+              code += `  if (${exprToCode(step.condition, 'state')}) {\n`;
+              for (const thenStep of step.then) {
+                code += `    ${stepToCode(thenStep, 'state')}\n`;
+              }
+              if (step.else) {
+                code += `  } else {\n`;
+                for (const elseStep of step.else) {
+                  code += `    ${stepToCode(elseStep, 'state')}\n`;
+                }
+              }
+              code += `  }\n`;
+              break;
+            case 'return':
+              code += `  return ${exprToCode(step.value, 'state')};\n`;
+              break;
+            case 'script':
+              if (step.language === 'javascript') {
+                code += `  state.${step.target} = (function(inputs) { ${step.script} })({${Object.keys(step.inputs).map(k => `${k}: ${exprToCode(step.inputs[k], 'state')}`).join(', ')}});\n`;
+              } else {
+                setOutput(prev => [...prev, `Code Gen Warning: Unsupported script language ${step.language}`]);
+              }
+              break;
+            default:
+              setOutput(prev => [...prev, `Code Gen Warning: Unsupported step type ${step.type}`]);
+          }
+        }
+
+        code += `  return state;\n}\n`;
+        return code;
+      } catch (e) {
+        setOutput(prev => [...prev, `Code Gen Error: ${e.message}`]);
+        return '';
+      }
+    };
+
+    const exprToCode = (expr, stateVar) => {
+      if (expr.value !== undefined) return JSON.stringify(expr.value);
+      if (expr.get) return `${stateVar}.${expr.get.replace(/\./g, '.')}`;
+      if (expr.compare) {
+        return `(${exprToCode(expr.compare.left, stateVar)} ${expr.compare.op.replace('===', '==')} ${exprToCode(expr.compare.right, stateVar)})`;
+      }
+      if (expr.add) return `(${expr.add.map(e => exprToCode(e, stateVar)).join(' + ')})`;
+      if (expr.subtract) return `(${expr.subtract.map(e => exprToCode(e, stateVar)).join(' - ')})`;
+      if (expr.multiply) return `(${expr.multiply.map(e => exprToCode(e, stateVar)).join(' * ')})`;
+      if (expr.divide) return `(${expr.divide.map(e => exprToCode(e, stateVar)).join(' / ')})`;
+      if (expr.concat) return `(${expr.concat.map(e => exprToCode(e, stateVar)).join(' + ')})`;
+      throw new Error(`Unsupported expression: ${JSON.stringify(expr)}`);
+    };
+
+    const stepToCode = (step, stateVar) => {
+      switch (step.type) {
+        case 'set':
+          return `state.${step.target} = ${exprToCode(step.value, stateVar)};`;
+        case 'return':
+          return `return ${exprToCode(step.value, stateVar)};`;
+        case 'script':
+          if (step.language === 'javascript') {
+            return `state.${step.target} = (function(inputs) { ${step.script} })({${Object.keys(step.inputs).map(k => `${k}: ${exprToCode(step.inputs[k], stateVar)}`).join(', ')}});`;
+          }
+          return `// Unsupported script language: ${step.language}`;
+        default:
+          return `// Unsupported step: ${step.type}`;
+      }
+    };
+
+    // Reverse Engine: Converts JavaScript code back to JSONFlow schema
+    const codeToSchema = (code, setOutput) => {
+      try {
+        const sanitizedCode = sanitizeInput(code);
+        const workflow = {
+          function: '',
+          metadata: {
+            schema_version: '1.1.0',
+            version: '1.0.0',
+            author: 'User',
+            description: 'Reconstructed workflow from code',
+            created: new Date().toISOString(),
+            updated: new Date().toISOString(),
+            tags: ['reconstructed'],
+            target_languages: ['javascript']
+          },
+          schema: { inputs: {}, context: {}, outputs: {} },
+          steps: [],
+          context: {},
+          invariants: [],
+          tests: []
+        };
+
+        const functionMatch = sanitizedCode.match(/function (\w+)\(context\)/);
+        if (functionMatch) {
+          workflow.function = functionMatch[1];
+        } else {
+          throw new Error('No valid function signature found');
+        }
+
+        const lines = sanitizedCode.split('\n').map(line => line.trim()).filter(line => line && !line.startsWith('let state') && !line.startsWith('return state'));
+        let stepId = 1;
+
+        for (const line of lines) {
+          if (line.includes('state.') && line.includes('=')) {
+            const [target, value] = line.split('=').map(s => s.trim());
+            const targetVar = target.replace('state.', '').replace(';', '');
+            const valueMatch = value.match(/(\w+\.\w+|\d+|\w+)/);
+            workflow.steps.push({
+              id: `step${stepId++}`,
+              type: 'set',
+              target: targetVar,
+              value: valueMatch ? parseNLValue(valueMatch[1]) : { value: value.replace(';', '').trim() }
+            });
+          } else if (line.startsWith('if')) {
+            const conditionMatch = line.match(/if \(([^)]+)\)/);
+            if (conditionMatch) {
+              const conditionParts = conditionMatch[1].match(/(\w+\.\w+)\s*(==|>|<|>=|<=)\s*(\d+|\w+\.\w+)/);
+              if (conditionParts) {
+                workflow.steps.push({
+                  id: `step${stepId++}`,
+                  type: 'if',
+                  condition: {
+                    compare: {
+                      left: parseNLValue(conditionParts[1]),
+                      op: conditionParts[2],
+                      right: parseNLValue(conditionParts[3])
+                    }
+                  },
+                  then: [],
+                  else: []
+                });
+              }
+            }
+          } else if (line.startsWith('return')) {
+            const value = line.replace('return', '').replace(';', '').trim();
+            workflow.steps.push({
+              id: `step${stepId++}`,
+              type: 'return',
+              value: parseNLValue(value)
+            });
+          }
+        }
+
+        return workflow;
+      } catch (e) {
+        setOutput(prev => [...prev, `Reverse Engine Error: ${e.message}`]);
+        return null;
+      }
+    };
+
+    // Interpreter
+    const evaluateExpr = (expr, state) => {
+      if (expr.value !== undefined) return expr.value;
+      if (expr.get) {
+        const keys = expr.get.split('.');
+        let value = state;
+        for (const key of keys) {
+          value = value[key] || null;
+          if (value === null) return null;
+        }
+        return value;
+      }
+      if (expr.compare) {
+        const left = evaluateExpr(expr.compare.left, state);
+        const right = evaluateExpr(expr.compare.right, state);
+        switch (expr.compare.op) {
+          case '===': return left === right;
+          case '!==': return left !== right;
+          case '<': return left < right;
+          case '>': return left > right;
+          case '<=': return left <= right;
+          case '>=': return left >= right;
+          default: throw new Error(`Unknown operator: ${expr.compare.op}`);
+        }
+      }
+      if (expr.add) return expr.add.reduce((sum, e) => sum + evaluateExpr(e, state), 0);
+    
+      if (expr.subtract) return expr.subtract.reduce((acc, e) => acc - evaluateExpr(e, state), evaluateExpr(expr.subtract[0], state));
+      if (expr.multiply) return expr.multiply.reduce((acc, e) => acc * evaluateExpr(e, state), 1);
+      if (expr.divide) return expr.divide.reduce((acc, e) => acc / evaluateExpr(e, state), evaluateExpr(expr.divide[0], state));
+      if (expr.concat) return expr.concat.map(e => evaluateExpr(e, state)).join('');
+      if (expr.and) return expr.and.every(e => evaluateExpr(e, state));
+      if (expr.or) return expr.or.some(e => evaluateExpr(e, state));
+      if (expr.not) return !evaluateExpr(expr.not, state);
+      if (expr.hash) {
+        const input = evaluateExpr(expr.hash.input, state);
+        if (expr.hash.algorithm === 'sha256') {
+          // Simulated SHA-256 for demo (not cryptographically secure)
+          return `hash_${input}`;
+        }
+      }
+      if (expr.regex) {
+        const input = evaluateExpr(expr.regex.input, state);
+        return new RegExp(expr.regex.pattern).test(input);
+      }
+      if (expr.map) {
+        const collection = evaluateExpr(expr.map.collection, state);
+        return collection.map(item => evaluateExpr(expr.map.operation, { ...state, item }));
+      }
+      if (expr.filter) {
+        const collection = evaluateExpr(expr.filter.collection, state);
+        return collection.filter(item => evaluateExpr(expr.filter.condition, { ...state, item }));
+      }
+      if (expr.parse_json) {
+        const input = evaluateExpr(expr.parse_json.input, state);
+        try {
+          return JSON.parse(input);
+        } catch (e) {
+          throw new Error(`JSON Parse Error: ${e.message}`);
+        }
+      }
+      throw new Error(`Unsupported expression: ${JSON.stringify(expr)}`);
+    };
+  
+    const executeStep = async (step, state, setOutput) => {
+      try {
+        switch (step.type) {
+          case 'set':
+            state[step.target] = evaluateExpr(step.value, state);
+            return state;
+          case 'if':
+            if (evaluateExpr(step.condition, state)) {
+              for (const thenStep of step.then) {
+                state = await executeStep(thenStep, state, setOutput);
+              }
+            } else if (step.else) {
+              for (const elseStep of step.else) {
+                state = await executeStep(elseStep, state, setOutput);
+              }
+            }
+            return state;
+          case 'return':
+            return { returnValue: evaluateExpr(step.value, state) };
+          case 'script':
+            if (step.language === 'javascript') {
+              const sandbox = {
+                inputs: Object.keys(step.inputs).reduce((acc, key) => ({
+                  ...acc,
+                  [key]: evaluateExpr(step.inputs[key], state)
+                }), {}),
+                console: { log: (...args) => setOutput(prev => [...prev, `Script Log: ${args.join(' ')}`]) }
+              };
+              const script = `
+                return (function(inputs) {
+                  ${step.script}
+                })(arguments[0]);
+              `;
+              try {
+                const result = new Function(...Object.keys(sandbox), script)(...Object.values(sandbox));
+                state[step.target] = result;
+              } catch (e) {
+                setOutput(prev => [...prev, `Script Execution Error: ${e.message}`]);
+                if (step.on_error) {
+                  state = await handleError(step.on_error, e, state, setOutput);
+                }
+              }
+            } else {
+              setOutput(prev => [...prev, `Unsupported script language: ${step.language}`]);
+            }
+            return state;
+          case 'assert':
+            if (!evaluateExpr(step.condition, state)) {
+              throw new Error(step.message);
+            }
+            return state;
+          default:
+            setOutput(prev => [...prev, `Unsupported step type: ${step.type}`]);
+            return state;
+        }
+      } catch (e) {
+        if (step.on_error) {
+          return await handleError(step.on_error, e, state, setOutput);
+        }
+        throw e;
+      }
+    };
+  
+    const handleError = async (onError, error, state, setOutput) => {
+      if (onError.body) {
+        setOutput(prev => [...prev, `Handling error: ${error.message}`]);
+        for (const step of onError.body) {
+          state = await executeStep(step, state, setOutput);
+        }
+      }
+      if (onError.step_id) {
+        setOutput(prev => [...prev, `Redirecting to error handler step: ${onError.step_id}`]);
+        // Simulate jumping to another step (in a real app, this would reference a step registry)
+        state.error = error.message;
+      }
+      if (onError.retry_policy) {
+        const { max_attempts, backoff } = onError.retry_policy;
+        for (let attempt = 1; attempt <= max_attempts; attempt++) {
+          try {
+            setOutput(prev => [...prev, `Retry attempt ${attempt} after ${backoff}`]);
+            await new Promise(resolve => setTimeout(resolve, parseBackoff(backoff)));
+            return state; // Retry logic simplified for demo
+          } catch (retryError) {
+            setOutput(prev => [...prev, `Retry ${attempt} failed: ${retryError.message}`]);
+          }
+        }
+      }
+      return state;
+    };
+  
+    const parseBackoff = (backoff) => {
+      const value = parseInt(backoff);
+      const unit = backoff.slice(-1);
+      switch (unit) {
+        case 's': return value * 1000;
+        case 'm': return value * 60 * 1000;
+        case 'h': return value * 60 * 60 * 1000;
+        default: return value;
+      }
+    };
+  
+    const executeWorkflow = async (workflow, setOutput) => {
+      let state = { ...workflow.context };
+      try {
+        for (const step of workflow.steps) {
+          const result = await executeStep(step, state, setOutput);
+          if (result.returnValue !== undefined) {
+            return result.returnValue;
+          }
+          state = result;
+        }
+        return state;
+      } catch (e) {
+        setOutput(prev => [...prev, `Workflow Execution Error: ${e.message}`]);
+        return null;
+      }
+    };
+  
+    // Error Boundary Component
+    class ErrorBoundary extends React.Component {
+      state = { hasError: false, error: null };
+  
+      static getDerivedStateFromError(error) {
+        return { hasError: true, error };
+      }
+  
+      componentDidCatch(error, errorInfo) {
+        console.error('ErrorBoundary caught:', error, errorInfo);
+        this.props.setOutput(prev => [...prev, `UI Error: ${error.message}`]);
+      }
+  
+      render() {
+        if (this.state.hasError) {
+          return (
+            <div className="p-4 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 rounded">
+              <h3>Error: {this.state.error?.message || 'Something went wrong'}</h3>
+              <button
+                className="mt-2 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                onClick={() => this.setState({ hasError: false, error: null })}
+              >
+                Reset
+              </button>
+            </div>
+          );
+        }
+        return this.props.children;
+      }
+    }
+  
+    // Main App Component
+    const App = () => {
+      const [workflow, setWorkflow] = useState(null);
+      const [nlInput, setNlInput] = useState('');
+      const [codeInput, setCodeInput] = useState('');
+      const [output, setOutput] = useState([]);
+      const [theme, setTheme] = useState('vs-dark');
+      const editorRef = useRef(null);
+      const nlEditorRef = useRef(null);
+      const codeEditorRef = useRef(null);
+      const mermaidRef = useRef(null);
+  
+      // Initialize Monaco Editor
+      useEffect(() => {
+        require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs' } });
+        require(['vs/editor/editor.main'], () => {
+          if (!editorRef.current) {
+            editorRef.current = monaco.editor.create(document.getElementById('editor'), {
+              value: JSON.stringify(workflow || {}, null, 2),
+              language: 'json',
+              theme,
+              automaticLayout: true,
+              accessibilitySupport: 'on',
+              ariaLabel: 'JSON Workflow Editor'
+            });
+            editorRef.current.onDidChangeModelContent(() => {
+              try {
+                const value = editorRef.current.getValue();
+                setWorkflow(JSON.parse(value));
+              } catch (e) {
+                setOutput(prev => [...prev, `Editor Error: Invalid JSON - ${e.message}`]);
+              }
+            });
+          }
+          if (!nlEditorRef.current) {
+            nlEditorRef.current = monaco.editor.create(document.getElementById('nlEditor'), {
+              value: nlInput,
+              language: 'plaintext',
+              theme,
+              automaticLayout: true,
+              accessibilitySupport: 'on',
+              ariaLabel: 'Natural Language Editor'
+            });
+            nlEditorRef.current.onDidChangeModelContent(() => {
+              setNlInput(nlEditorRef.current.getValue());
+            });
+          }
+          if (!codeEditorRef.current) {
+            codeEditorRef.current = monaco.editor.create(document.getElementById('codeEditor'), {
+              value: codeInput,
+              language: 'javascript',
+              theme,
+              automaticLayout: true,
+              accessibilitySupport: 'on',
+              ariaLabel: 'Code Editor'
+            });
+            codeEditorRef.current.onDidChangeModelContent(() => {
+              setCodeInput(codeEditorRef.current.getValue());
+            });
+          }
+        });
+  
+        // Initialize Mermaid
+        mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+  
+        // Register Service Worker for offline support
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.register('/sw.js').catch(error => {
+            console.error('Service Worker registration failed:', error);
+          });
+        }
+  
+        return () => {
+          if (editorRef.current) editorRef.current.dispose();
+          if (nlEditorRef.current) nlEditorRef.current.dispose();
+          if (codeEditorRef.current) codeEditorRef.current.dispose();
+        };
+      }, []);
+  
+      // Update Mermaid diagram
+      useEffect(() => {
+        if (workflow?.metadata?.mermaid && mermaidRef.current) {
+          try {
+            mermaid.render('mermaidDiagram', workflow.metadata.mermaid, (svgCode) => {
+              mermaidRef.current.innerHTML = svgCode;
+            });
+          } catch (e) {
+            setOutput(prev => [...prev, `Mermaid Render Error: ${e.message}`]);
+          }
+        }
+      }, [workflow]);
+  
+      // Handle Theme Toggle
+      const toggleTheme = () => {
+        const newTheme = theme === 'vs-dark' ? 'vs-light' : 'vs-dark';
+        setTheme(newTheme);
+        monaco.editor.setTheme(newTheme);
+        document.body.classList.toggle('dark');
+      };
+  
+      // Handle Workflow Execution
+      const runWorkflow = async () => {
+        if (!workflow) {
+          setOutput(prev => [...prev, 'No workflow to execute']);
+          return;
+        }
+        try {
+          const validator = new window.JSONSchema.Validator(jsonFlowSchema);
+          const result = validator.validate(workflow);
+          if (!result.valid) {
+            setOutput(prev => [...prev, `Validation Error: ${result.errors.join(', ')}`]);
+            return;
+          }
+          const executionResult = await executeWorkflow(workflow, setOutput);
+          setOutput(prev => [...prev, `Execution Result: ${JSON.stringify(executionResult, null, 2)}`]);
+        } catch (e) {
+          setOutput(prev => [...prev, `Execution Error: ${e.message}`]);
+        }
+      };
+  
+      // Handle NL Parsing
+      const parseNL = () => {
+        const parsed = parseNLToSchema(nlInput, setOutput);
+        if (parsed) {
+          setWorkflow(parsed);
+          if (editorRef.current) {
+            editorRef.current.setValue(JSON.stringify(parsed, null, 2));
+          }
+        }
+      };
+  
+      // Handle Code Generation
+      const generateCode = () => {
+        if (!workflow) {
+          setOutput(prev => [...prev, 'No workflow to generate code from']);
+          return;
+        }
+        const code = schemaToCode(workflow, setOutput);
+        setCodeInput(code);
+        if (codeEditorRef.current) {
+          codeEditorRef.current.setValue(code);
+        }
+      };
+  
+      // Handle Reverse Engineering
+      const reverseEngineer = () => {
+        const parsed = codeToSchema(codeInput, setOutput);
+        if (parsed) {
+          setWorkflow(parsed);
+          if (editorRef.current) {
+            editorRef.current.setValue(JSON.stringify(parsed, null, 2));
+          }
+        }
+      };
+  
+      return (
+        <ErrorBoundary setOutput={setOutput}>
+          <div className="container mx-auto p-4 space-y-6">
+            <header className="flex justify-between items-center">
+              <h1 className="text-2xl font-bold" role="heading" aria-level="1">JSONFlow Editor & Runner</h1>
+              <button
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onClick={toggleTheme}
+                aria-label={`Switch to ${theme === 'vs-dark' ? 'light' : 'dark'} theme`}
+              >
+                Toggle Theme
+              </button>
+            </header>
+  
+            <section className="space-y-4">
+              <h2 className="text-xl font-semibold" role="heading" aria-level="2">Natural Language Input</h2>
+              <div id="nlEditor" className="border rounded" role="textbox" aria-label="Natural Language Editor"></div>
+              <button
+                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500"
+                onClick={parseNL}
+                aria-label="Parse Natural Language to Workflow"
+              >
+                Parse NL
+              </button>
+            </section>
+  
+            <section className="space-y-4">
+              <h2 className="text-xl font-semibold" role="heading" aria-level="2">JSON Workflow Editor</h2>
+              <div id="editor" className="border rounded" role="textbox" aria-label="JSON Workflow Editor"></div>
+              <div className="flex space-x-2">
+                <button
+                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onClick={runWorkflow}
+                  aria-label="Run Workflow"
+                >
+                  Run Workflow
+                </button>
+                <button
+                  className="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  onClick={generateCode}
+                  aria-label="Generate Code from Workflow"
+                >
+                  Generate Code
+                </button>
+              </div>
+            </section>
+  
+            <section className="space-y-4">
+              <h2 className="text-xl font-semibold" role="heading" aria-level="2">Generated Code</h2>
+              <div id="codeEditor" className="border rounded" role="textbox" aria-label="Code Editor"></div>
+              <button
+                className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                onClick={reverseEngineer}
+                aria-label="Reverse Engineer Code to Workflow"
+              >
+                Reverse Engineer
+              </button>
+            </section>
+  
+            <section className="space-y-4">
+              <h2 className="text-xl font-semibold" role="heading" aria-level="2">Workflow Diagram</h2>
+              <div id="mermaid" ref={mermaidRef} className="p-4 bg-white dark:bg-gray-800 rounded" role="img" aria-label="Workflow Diagram"></div>
+            </section>
+  
+            <section className="space-y-4">
+              <h2 className="text-xl font-semibold" role="heading" aria-level="2">Output</h2>
+              <div
+                className="p-4 bg-gray-200 dark:bg-gray-800 rounded h-40 overflow-y-auto"
+                role="log"
+                aria-live="polite"
+              >
+                {output.map((msg, i) => (
+                  <p key={i} className="text-sm">{msg}</p>
+                ))}
+              </div>
+            </section>
+          </div>
+        </ErrorBoundary>
+      );
+    };
+  
+    // Render the App
+    ReactDOM.render(<App />, document.getElementById('root'));
+  
+    // Service Worker for offline support
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').then(registration => {
+        console.log('Service Worker registered with scope:', registration.scope);
+      }).catch(error => {
+        console.error('Service Worker registration failed:', error);
+      });
+    }
+    </script>
+  </body>
+  </html>  
