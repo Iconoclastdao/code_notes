@@ -1,0 +1,148 @@
+{
+  "$id": "https://sovereign-revelation.org/schema/sovereign-code.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SovereignCodeHub",
+  "description": "Decentralized version control, collaboration, and repo governance schema.",
+  "type": "object",
+  "required": ["id", "type", "repositories"],
+  "properties": {
+    "id": { "type": "string", "default": "sovereign-codehub" },
+    "type": { "type": "string", "enum": ["code"], "default": "code" },
+    "repositories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "owner", "created_at", "branches"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "owner": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "visibility": { "type": "string", "enum": ["public", "private"], "default": "public" },
+          "contributors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["user", "role"],
+              "properties": {
+                "user": { "type": "string" },
+                "role": { "type": "string", "enum": ["admin", "maintainer", "contributor", "viewer"] }
+              }
+            }
+          },
+          "branches": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "commits"],
+              "properties": {
+                "name": { "type": "string" },
+                "commits": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["id", "message", "author", "timestamp"],
+                    "properties": {
+                      "id": { "type": "string" },
+                      "message": { "type": "string" },
+                      "author": { "type": "string" },
+                      "timestamp": { "type": "string", "format": "date-time" },
+                      "changes": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "file": { "type": "string" },
+                            "diff": { "type": "string" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "pull_requests": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "title", "from_branch", "to_branch", "author", "status"],
+              "properties": {
+                "id": { "type": "string" },
+                "title": { "type": "string" },
+                "description": { "type": "string" },
+                "from_branch": { "type": "string" },
+                "to_branch": { "type": "string" },
+                "author": { "type": "string" },
+                "created_at": { "type": "string", "format": "date-time" },
+                "status": { "type": "string", "enum": ["open", "merged", "closed"], "default": "open" },
+                "reviews": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "reviewer": { "type": "string" },
+                      "comment": { "type": "string" },
+                      "approved": { "type": "boolean" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "title", "author", "status"],
+              "properties": {
+                "id": { "type": "string" },
+                "title": { "type": "string" },
+                "description": { "type": "string" },
+                "author": { "type": "string" },
+                "created_at": { "type": "string", "format": "date-time" },
+                "status": { "type": "string", "enum": ["open", "closed"], "default": "open" },
+                "comments": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "commenter": { "type": "string" },
+                      "content": { "type": "string" },
+                      "timestamp": { "type": "string", "format": "date-time" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "dao": {
+            "type": "object",
+            "properties": {
+              "proposals": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string" },
+                    "title": { "type": "string" },
+                    "description": { "type": "string" },
+                    "creator": { "type": "string" },
+                    "created_at": { "type": "string", "format": "date-time" },
+                    "votes": {
+                      "type": "object",
+                      "additionalProperties": { "type": "string" }
+                    },
+                    "status": { "type": "string", "enum": ["open", "closed", "executed"] }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

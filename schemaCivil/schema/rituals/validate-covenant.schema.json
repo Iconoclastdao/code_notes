@@ -1,0 +1,31 @@
+{
+  "ritual": "validate_covenant",
+  "agent": "CovenantOracle",
+  "requires": ["covenant_key", "trust_score"],
+  "defense": [
+    {
+      "type": "adaptive",
+      "logic": "reroute_if_trust_below_threshold",
+      "parameters": { "trust_threshold": 0.7 }
+    }
+  ],
+  "response": ["approve_covenant", "update_trust"],
+  "recursive": { "enabled": false },
+  "awareness": {
+    "self_reflection": "I verify the covenant’s integrity.",
+    "state": { "trust_score": 0.85 }
+  },
+  "audit": {
+    "origin": "CovenantHub",
+    "timestamp": "2025-05-22T10:15:00Z",
+    "verified_by": ["WatcherNode-2"],
+    "signal_chain": [
+      {
+        "signal_id": "COV_001",
+        "timestamp": "2025-05-22T10:15:00Z",
+        "source": "CovenantHub",
+        "hash": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d"
+      }
+    ]
+  }
+}

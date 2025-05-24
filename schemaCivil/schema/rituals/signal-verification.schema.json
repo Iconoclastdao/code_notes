@@ -1,0 +1,7 @@
+{
+  "ritual": "signal_verification",
+  "agent": "Human",
+  "requires": ["soul_credential", "opt_in"],
+  "defense": ["reject_if_spoofed", "zkp_verify"],
+  "response": ["grant_signal_channel"]
+}

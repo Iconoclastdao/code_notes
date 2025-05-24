@@ -1,0 +1,1405 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "JSONFlow Ultimate Workflow Schema",
+  "description": "A production-ready DSL for interoperable workflows with enhanced NLP capabilities, integrating blockchain, AI, quantum computing, UI, and game development.",
+  "type": "object",
+  "required": ["function", "schema", "steps", "metadata", "nlp"],
+  "properties": {
+    "function": {
+      "type": "string",
+      "description": "Unique workflow identifier adhering to Solidity naming conventions.",
+      "minLength": 1,
+      "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$"
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Semantic version of the JSONFlow schema (e.g., '1.2.0')."
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Workflow version."
+        },
+        "author": { "type": "string", "minLength": 1 },
+        "description": { "type": "string", "minLength": 1 },
+        "created": { "type": "string", "format": "date-time" },
+        "updated": { "type": "string", "format": "date-time" },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "mermaid": {
+          "type": "string",
+          "description": "Mermaid diagram for workflow visualization."
+        },
+        "target_languages": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["solidity", "cairo", "rust", "python", "javascript", "typescript", "go", "java", "kotlin", "c++"]
+          },
+          "uniqueItems": true
+        },
+        "game_engines": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["unity", "unreal", "godot", "bevy", "custom"]
+          },
+          "uniqueItems": true
+        },
+        "dependencies": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+              "hash": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" },
+              "type": { "type": "string", "enum": ["library", "game_library", "asset", "contract"] },
+              "source": { "type": "string", "format": "uri" }
+            },
+            "required": ["version", "type", "hash"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["schema_version", "version", "author", "description"],
+      "additionalProperties": false
+    },
+    "nlp": {
+      "title": "NaturalLanguagePanelExtended",
+      "type": "object",
+      "description": "Extended natural language interface schema with semantic, analogical, multimodal, and meta-layer constructs.",
+      "properties": {
+        "id": {"type": "string", "description": "Unique identifier for the panel"},
+        "title": {"type": "string", "description": "Display title of the panel"},
+        "type": {"type": "string", "enum": ["nl"], "default": "nl"},
+        "source": {"type": "string", "description": "Agent source path or model ID for the NLP engine"},
+        "layout": {
+          "type": "object",
+          "properties": {
+            "x": {"type": "integer", "minimum": 0},
+            "y": {"type": "integer", "minimum": 0},
+            "w": {"type": "integer", "minimum": 1},
+            "h": {"type": "integer", "minimum": 1}
+          },
+          "required": ["x", "y", "w", "h"]
+        },
+        "nl": {
+          "type": "object",
+          "properties": {
+            "mode": {"type": "string", "enum": ["chat", "command", "query"], "default": "chat"},
+            "model": {"type": "string"},
+            "bindingTarget": {"type": "string"},
+            "mapIntent": {"type": "object", "additionalProperties": {"type": "string"}},
+            "language": {"type": "string", "pattern": "^[a-z]{2}(-[A-Z]{2})?$", "default": "en"},
+            "history": {"type": "boolean", "default": true},
+            "contextWindow": {"type": "integer", "minimum": 0, "default": 1000},
+            "confidenceThreshold": {"type": "number", "minimum": 0, "maximum": 1, "default": 0.7},
+            "fallbackAction": {"type": "string"},
+            "analogyMap": {
+              "type": "array",
+              "description": "List of analogies used for semantic interpretation.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "sourceConcept": {"type": "string"},
+                  "targetConcept": {"type": "string"},
+                  "analogyType": {"type": "string", "enum": ["functional", "structural", "relational"]},
+                  "weight": {"type": "number", "minimum": 0, "maximum": 1}
+                },
+                "required": ["sourceConcept", "targetConcept"]
+              }
+            },
+            "userProfiles": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "preferences": {"type": "object", "additionalProperties": {"type": "string"}},
+                  "historyContext": {"type": "array", "items": {"type": "string"}}
+                }
+              }
+            },
+            "preprocessing": {
+              "type": "object",
+              "properties": {
+                "tokenization": {
+                  "type": "string",
+                  "enum": ["wordpiece", "bpe", "sentencepiece"],
+                  "default": "wordpiece"
+                },
+                "normalization": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": ["lowercase", "stemming", "lemmatization", "stopwords"]
+                  },
+                  "uniqueItems": true
+                }
+              },
+              "required": ["tokenization"],
+              "additionalProperties": false
+            },
+            "postprocessing": {
+              "type": "object",
+              "properties": {
+                "output_format": {
+                  "type": "string",
+                  "enum": ["text", "json", "xml"],
+                  "default": "text"
+                },
+                "sanitization": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Sanitize NLP output for security."
+                }
+              },
+              "required": ["output_format"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["mode", "model", "bindingTarget"]
+        }
+      },
+      "required": ["id", "title", "type", "source", "layout", "nl"],
+      "additionalProperties": false
+    },
+    "ui": { "$ref": "#/$defs/ui" },
+    "access_policy": {
+      "type": "object",
+      "properties": {
+        "roles": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "permissions": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "policy_engine": {
+          "type": "string",
+          "enum": ["opa", "custom"]
+        }
+      },
+      "required": ["roles", "permissions"],
+      "additionalProperties": false
+    },
+    "game": {
+      "type": "object",
+      "properties": {
+        "engine": {
+          "type": "string",
+          "enum": ["unity", "unreal", "godot", "bevy", "custom"]
+        },
+        "platforms": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["pc", "console", "mobile", "web", "vr", "ar"] },
+          "uniqueItems": true
+        },
+        "asset_pipeline": {
+          "type": "object",
+          "properties": {
+            "formats": {
+              "type": "array",
+              "items": { "type": "string", "enum": ["fbx", "gltf", "png", "jpg", "wav", "mp3", "ogg"] },
+              "uniqueItems": true
+            },
+            "preprocessors": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "uniqueItems": true
+            }
+          },
+          "required": ["formats"],
+          "additionalProperties": false
+        },
+        "multiplayer": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "enum": ["p2p", "client-server", "hybrid"] },
+            "max_players": { "type": "integer", "minimum": 1 },
+            "network_protocol": { "type": "string", "enum": ["udp", "tcp", "websocket", "webrtc"] },
+            "latency_tolerance": { "type": "integer", "minimum": 0 }
+          },
+          "required": ["type", "max_players"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["engine", "platforms"],
+      "additionalProperties": false
+    },
+    "schema": {
+      "type": "object",
+      "required": ["inputs", "context", "outputs"],
+      "properties": {
+        "inputs": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["type"],
+            "properties": {
+              "type": { "type": "string", "enum": ["string", "integer", "number", "boolean", "object", "array", "null"] },
+              "default": {
+                "anyOf": [
+                  { "type": "string" },
+                  { "type": "integer" },
+                  { "type": "number" },
+                  { "type": "boolean" },
+                  { "type": "object" },
+                  { "type": "array" },
+                  { "type": "null" }
+                ]
+              },
+              "description": { "type": "string", "minLength": 1 },
+              "nl_noun": {
+                "oneOf": [
+                  { "type": "string", "minLength": 1 },
+                  { "type": "object", "additionalProperties": { "type": "string", "minLength": 1 } }
+                ]
+              },
+              "nl_description": {
+                "oneOf": [
+                  { "type": "string", "minLength": 1 },
+                  { "type": "object", "additionalProperties": { "type": "string", "minLength": 1 } }
+                ]
+              },
+              "constraints": {
+                "type": "object",
+                "properties": {
+                  "minLength": { "type": "integer", "minimum": 0 },
+                  "maxLength": { "type": "integer", "minimum": 0 },
+                  "pattern": { "type": "string", "minLength": 1 },
+                  "minimum": { "type": "number" },
+                  "maximum": { "type": "number" },
+                  "enum": {
+                    "type": "array",
+                    "items": { "type": ["string", "number", "boolean"] },
+                    "minItems": 1
+                  }
+                },
+                "additionalProperties": false
+              },
+              "ui": { "$ref": "#/$defs/ui" },
+              "nlp_processing": {
+                "type": "object",
+                "properties": {
+                  "entity_recognition": { "type": "boolean", "default": false },
+                  "sentiment_analysis": { "type": "boolean", "default": false },
+                  "intent_classification": { "type": "boolean", "default": false }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "context": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["type", "source"],
+            "properties": {
+              "type": { "type": "string", "enum": ["string", "integer", "number", "boolean", "object", "array", "null"] },
+              "nl_noun": {
+                "oneOf": [
+                  { "type": "string", "minLength": 1 },
+                  { "type": "object", "additionalProperties": { "type": "string", "minLength": 1 } }
+                ]
+              },
+              "nl_description": {
+                "oneOf": [
+                  { "type": "string", "minLength": 1 },
+                  { "type": "object", "additionalProperties": { "type": "string", "minLength": 1 } }
+                ]
+              },
+              "source": {
+                "type": "string",
+                "enum": ["env", "config", "blockchain", "external_api", "game_state", "player_input", "database", "nlp_output"]
+              },
+              "nlp_processing": {
+                "type": "object",
+                "properties": {
+                  "entity_recognition": { "type": "boolean", "default": false },
+                  "sentiment_analysis": { "type": "boolean", "default": false },
+                  "intent_classification": { "type": "boolean", "default": false }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "outputs": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["type"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["string", "integer", "number", "boolean", "object", "array", "null", "game_state", "render_output", "physics_state", "nlp_result"]
+              },
+              "description": { "type": "string", "minLength": 1 },
+              "nl_noun": {
+                "oneOf": [
+                  { "type": "string", "minLength": 1 },
+                  { "type": "object", "additionalProperties": { "type": "string", "minLength": 1 } }
+                ]
+              },
+              "nl_description": {
+                "oneOf": [
+                  { "type": "string", "minLength": 1 },
+                  { "type": "object", "additionalProperties": { "type": "string", "minLength": 1 } }
+                ]
+              },
+              "ui": { "$ref": "#/$defs/ui" },
+              "nlp_postprocessing": {
+                "type": "object",
+                "properties": {
+                  "summarization": { "type": "boolean", "default": false },
+                  "translation": {
+                    "type": "string",
+                    "enum": ["en", "es", "zh", "fr", "de", "ja", "ru", "ar"]
+                  },
+                  "formatting": {
+                    "type": "string",
+                    "enum": ["plain", "markdown", "html"],
+                    "default": "plain"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "context": {
+      "type": "object",
+      "default": {},
+      "additionalProperties": false
+    },
+    "invariants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["condition", "message"],
+        "properties": {
+          "condition": { "$ref": "#/$defs/expr" },
+          "message": { "type": "string", "minLength": 1 },
+          "severity": { "type": "string", "enum": ["error", "warning", "info"], "default": "error" },
+          "verification_tool": {
+            "type": "string",
+            "enum": ["certora", "scribble", "mythril"]
+          }
+        },
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "tests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "type", "inputs", "expected"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "type": {
+            "type": "string",
+            "enum": ["example", "property", "fuzz"]
+          },
+          "inputs": { "type": "object" },
+          "expected": { "type": "object" },
+          "context": { "type": "object" },
+          "description": { "type": "string", "minLength": 1 },
+          "properties": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/expr" },
+            "minItems": 1
+          },
+          "nlp_test": {
+            "type": "object",
+            "properties": {
+              "input_text": { "type": "string", "minLength": 1 },
+              "expected_intent": { "type": "string", "minLength": 1 },
+              "expected_entities": { "type": "object" },
+              "expected_sentiment": { "type": "string", "enum": ["positive", "negative", "neutral"] }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "steps": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/step" },
+      "minItems": 1
+    },
+    "attestation": {
+      "type": "object",
+      "properties": {
+        "signers": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^0x[a-fA-F0-9]{40}$" },
+          "uniqueItems": true
+        },
+        "signature": { "type": "string", "pattern": "^0x[a-fA-F0-9]+$" },
+        "hash": { "type": "string", "pattern": "^0x[a-fA-F0-9]{64}$" }
+      },
+      "required": ["signers", "signature", "hash"],
+      "additionalProperties": false
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "timestamp": { "type": "string", "format": "date-time" },
+          "author": { "type": "string", "minLength": 1 },
+          "change_summary": { "type": "string", "minLength": 1 },
+          "diff": { "type": "string" }
+        },
+        "required": ["timestamp", "author", "change_summary"],
+        "additionalProperties": false
+      }
+    },
+    "execution_policy": {
+      "type": "object",
+      "properties": {
+        "max_runs_per_minute": { "type": "integer", "minimum": 1, "default": 60 },
+        "max_concurrent_runs": { "type": "integer", "minimum": 1, "default": 10 },
+        "priority": { "type": "string", "enum": ["low", "medium", "high"], "default": "medium" }
+      },
+      "required": ["max_runs_per_minute", "max_concurrent_runs"],
+      "additionalProperties": false
+    },
+    "secrets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "source": { "type": "string", "enum": ["env", "vault", "kms", "secret_manager"] },
+          "key_id": { "type": "string" }
+        },
+        "required": ["name", "source"],
+        "additionalProperties": false
+      },
+      "uniqueItems": true
+    },
+    "subworkflows": {
+      "type": "array",
+      "items": { "type": "string", "format": "uri" },
+      "uniqueItems": true
+    },
+    "verification_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "tool": { "type": "string", "minLength": 1 },
+          "date": { "type": "string", "format": "date-time" },
+          "result": { "type": "string", "enum": ["success", "failure", "partial"] },
+          "properties_verified": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "uniqueItems": true
+          }
+        },
+        "required": ["tool", "date", "result"],
+        "additionalProperties": false
+      }
+    },
+    "resource_estimates": {
+      "type": "object",
+      "properties": {
+        "cpu": { "type": "number", "minimum": 0 },
+        "memory": { "type": "number", "minimum": 0 },
+        "storage": { "type": "number", "minimum": 0 },
+        "network": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "ui": {
+      "type": "object",
+      "properties": {
+        "framework": {
+          "type": "string",
+          "enum": ["react", "vue", "svelte", "game"],
+          "default": "react"
+        },
+        "component": {
+          "type": "string",
+          "minLength": 1
+        },
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "css": {
+          "type": "object",
+          "properties": {
+            "className": { "type": "string", "minLength": 1 },
+            "style": { "type": "object", "additionalProperties": true }
+          },
+          "additionalProperties": false
+        },
+        "game_ui": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "enum": ["hud", "menu", "3d", "vr", "ar"] },
+            "position": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+            "rotation": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+            "scale": { "type": "number", "minimum": 0 }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        },
+        "nlp_ui": {
+          "type": "object",
+          "properties": {
+            "chat_component": { "type": "string", "minLength": 1, "description": "Component for chat-based NLP interaction." },
+            "voice_input": { "type": "boolean", "default": false, "description": "Enable voice input for NLP." },
+            "response_format": { "type": "string", "enum": ["text", "voice", "markdown", "html"], "default": "text" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": ["framework", "component"],
+      "additionalProperties": false
+    },
+    "common_step_properties": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "on_error": { "$ref": "#/$defs/on_error" },
+        "nl_phrase": {
+          "oneOf": [
+            { "type": "string", "minLength": 1 },
+            { "type": "object", "additionalProperties": { "type": "string", "minLength": 1 } }
+          ]
+        },
+        "access_control": {
+          "type": "object",
+          "properties": {
+            "roles": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "uniqueItems": true
+            },
+            "permissions": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "timeout": {
+          "type": "object",
+          "properties": {
+            "duration": { "type": "string", "pattern": "^\\d+[smh]$" },
+            "action": { "type": "string", "enum": ["skip", "retry", "fail"], "default": "fail" },
+            "max_retries": { "type": "integer", "minimum": 0, "default": 0 }
+          },
+          "required": ["duration"],
+          "additionalProperties": false
+        },
+        "ui": { "$ref": "#/$defs/ui" },
+        "resource_estimates": {
+          "type": "object",
+          "properties": {
+            "cpu": { "type": "number", "minimum": 0 },
+            "memory": { "type": "number", "minimum": 0 },
+            "storage": { "type": "number", "minimum": 0 },
+            "network": { "type": "number", "minimum": 0 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": ["id"],
+      "additionalProperties": false
+    },
+    "step": {
+      "oneOf": [
+        {
+          "allOf": [
+            { "$ref": "#/$defs/common_step_properties" },
+            {
+              "properties": {
+                "type": { "const": "set" },
+                "target": { "type": "string", "minLength": 1 },
+                "value": { "$ref": "#/$defs/expr" }
+              },
+              "required": ["type", "target", "value"]
+            }
+          ],
+          "additionalProperties": false
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/common_step_properties" },
+            {
+              "properties": {
+                "type": { "const": "if" },
+                "condition": { "$ref": "#/$defs/expr" },
+                "then": { "type": "array", "items": { "$ref": "#/$defs/step" }, "minItems": 1 },
+                "else": { "type": "array", "items": { "$ref": "#/$defs/step" }, "minItems": 1 }
+              },
+              "required": ["type", "condition", "then"]
+            }
+          ],
+          "additionalProperties": false
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/common_step_properties" },
+            {
+              "properties": {
+                "type": { "const": "return" },
+                "value": { "$ref": "#/$defs/expr" }
+              },
+              "required": ["type", "value"]
+            }
+          ],
+          "additionalProperties": false
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/common_step_properties" },
+            {
+              "properties": {
+                "type": { "const": "call" },
+                "function": { "type": "string", "minLength": 1 },
+                "args": { "type": "object", "additionalProperties": { "$ref": "#/$defs/expr" } },
+                "target": { "type": "string", "minLength": 1 }
+              },
+              "required": ["type", "function", "args", "target"]
+            }
+          ],
+          "additionalProperties": false
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/common_step_properties" },
+            {
+              "properties": {
+                "type": { "const": "try" },
+                "body": { "type": "array", "items": { "$ref": "#/$defs/step" }, "minItems": 1 },
+                "catch": {
+                  "type": "object",
+                  "properties": {
+                    "error_var": { "type": "string", "minLength": 1 },
+                    "body": { "type": "array", "items": { "$ref": "#/$defs/step" }, "minItems": 1 }
+                  },
+                  "required": ["error_var", "body"],
+                  "additionalProperties": false
+                },
+                "finally": { "type": "array", "items": { "$ref": "#/$defs/step" }, "minItems": 1 }
+              },
+              "required": ["type", "body"]
+            }
+          ],
+          "additionalProperties": false
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/common_step_properties" },
+            {
+              "properties": {
+                "type": { "const": "while" },
+                "condition": { "$ref": "#/$defs/expr" },
+                "body": { "type": "array", "items": { "$ref": "#/$defs/step" }, "minItems": 1 },
+                "max_iterations": { "type": "integer", "minimum": 1, "default": 1000 }
+              },
+              "required": ["type", "condition", "body"]
+            }
+          ],
+          "additionalProperties": false
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/common_step_properties" },
+            {
+              "properties": {
+                "type": { "const": "foreach" },
+                "collection": { "$ref": "#/$defs/expr" },
+                "iterator": { "type": "string", "minLength": 1 },
+                "body": { "type": "array", "items": { "$ref": "#/$defs/step" }, "minItems": 1 }
+              },
+              "required": ["type", "collection", "iterator", "body"]
+            }
+          ],
+          "additionalProperties": false
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/common_step_properties" },
+            {
+              "properties": {
+                "type": { "const": "parallel" },
+                "branches": {
+                  "type": "array",
+                  "items": { "type": "array", "items": { "$ref": "#/$defs/step" }, "minItems": 1 },
+                  "minItems": 1
+                },
+                "merge_strategy": {
+                  "type": "string",
+                  "enum": ["all", "first", "last"],
+                  "default": "all"
+                }
+              },
+              "required": ["type", "branches"]
+            }
+          ],
+          "additionalProperties": false
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/common_step_properties" },
+            {
+              "properties": {
+                "type": { "const": "assert" },
+                "condition": { "$ref": "#/$defs/expr" },
+                "message": { "type": "string", "minLength": 1 }
+              },
+              "required": ["type", "condition", "message"]
+            }
+          ],
+          "additionalProperties": false
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/common_step_properties" },
+            {
+              "properties": {
+                "type": { "const": "event" },
+                "name": { "type": "string", "minLength": 1 },
+                "params": { "type": "object", "additionalProperties": { "$ref": "#/$defs/expr" } }
+              },
+              "required": ["type", "name", "params"]
+            }
+          ],
+          "additionalProperties": false
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/common_step_properties" },
+            {
+              "properties": {
+                "type": { "const": "require_role" },
+                "role": { "type": "string", "minLength": 1 }
+              },
+              "required": ["type", "role"]
+            }
+          ],
+          "additionalProperties": false
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/common_step_properties" },
+            {
+              "properties": {
+                "type": { "const": "ai_infer" },
+                "model": { "type": "string", "minLength": 1 },
+                "input": { "$ref": "#/$defs/expr" },
+                "parameters": {
+                  "type": "object",
+                  "properties": {
+                    "temperature": { "type": "number", "minimum": 0, "maximum": 2 },
+                    "max_tokens": { "type": "integer", "minimum": 1 },
+                    "top_p": { "type": "number", "minimum": 0, "maximum": 1 }
+                  },
+                  "additionalProperties": false
+                },
+                "target": { "type": "string", "minLength": 1 }
+              },
+              "required": ["type", "model", "input", "target"]
+            }
+          ],
+          "additionalProperties": false
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/common_step_properties" },
+            {
+              "properties": {
+                "type": { "const": "ai_train" },
+                "model": { "type": "string", "minLength": 1 },
+                "data": { "$ref": "#/$defs/expr" },
+                "parameters": {
+                  "type": "object",
+                  "properties": {
+                    "epochs": { "type": "integer", "minimum": 1 },
+                    "batch_size": { "type": "integer", "minimum": 1 },
+                    "learning_rate": { "type": "number", "minimum": 0 }
+                  },
+                  "additionalProperties": false
+                },
+                "target": { "type": "string", "minLength": 1 }
+              },
+              "required": ["type", "model", "data", "target"]
+            }
+          ],
+          "additionalProperties": false
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/common_step_properties" },
+            {
+              "properties": {
+                "type": { "const": "ai_classify" },
+                "model": { "type": "string", "minLength": 1 },
+                "input": { "$ref": "#/$defs/expr" },
+                "parameters": {
+                  "type": "object",
+                  "properties": {
+                    "labels": {
+                      "type": "array",
+                      "items": { "type": "string", "minLength": 1 },
+                      "minItems": 1
+                    },
+                    "confidence_threshold": { "type": "number", "minimum": 0, "maximum": 1 }
+                  },
+                  "additionalProperties": false
+                },
+                "target": { "type": "string", "minLength": 1 }
+              },
+              "required": ["type", "model", "input", "target"]
+            }
+          ],
+          "additionalProperties": false
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/common_step_properties" },
+            {
+              "properties": {
+                "type": { "const": "ai_embed" },
+                "model": { "type": "string", "minLength": 1 },
+                "input": { "$ref": "#/$defs/expr" },
+                "parameters": {
+                  "type": "object",
+                  "properties": {
+                    "dimension": { "type": "integer", "minimum": 1 }
+                  },
+                  "additionalProperties": false
+                },
+                "target": { "type": "string", "minLength": 1 }
+              },
+              "required": ["type", "model", "input", "target"]
+            }
+          ],
+          "additionalProperties": false
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/common_step_properties" },
+            {
+              "properties": {
+                "type": { "const": "ai_explain" },
+                "model": { "type": "string", "minLength": 1 },
+                "input": { "$ref": "#/$defs/expr" },
+                "parameters": {
+                  "type": "object",
+                  "properties": {
+                    "explanation_level": { "type": "string", "enum": ["simple", "detailed"] },
+                    "target_audience": { "type": "string", "enum": ["technical", "non_technical"] }
+                  },
+                  "additionalProperties": false
+                },
+                "target": { "type": "string", "minLength": 1 }
+              },
+              "required": ["type", "model", "input", "target"]
+            }
+          ],
+          "additionalProperties": false
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/common_step_properties" },
+            {
+              "properties": {
+                "type": { "const": "ai_nlp_process" },
+                "model": { "type": "string", "minLength": 1 },
+                "input": { "$ref": "#/$defs/expr" },
+                "task": {
+                  "type": "string",
+                  "enum": ["entity_recognition", "sentiment_analysis", "intent_classification", "summarization", "translation"]
+                },
+                "parameters": {
+                  "type": "object",
+                  "properties": {
+                    "language": { "type": "string", "enum": ["en", "es", "zh", "fr", "de", "ja", "ru", "ar"] },
+                    "max_length": { "type": "integer", "minimum": 1 },
+                    "confidence_threshold": { "type": "number", "minimum": 0, "maximum": 1 }
+                  },
+                  "additionalProperties": false
+                },
+                "target": { "type": "string", "minLength": 1 }
+              },
+              "required": ["type", "model", "input", "task", "target"]
+            }
+          ],
+          "additionalProperties": false
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/common_step_properties" },
+            {
+              "properties": {
+                "type": { "const": "quantum_circuit" },
+                "gates": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["gate", "target"],
+                    "properties": {
+                      "gate": {
+                        "type": "string",
+                        "enum": ["H", "X", "Y", "Z", "CNOT", "T", "S", "RX", "RY", "RZ", "SWAP", "TOFFOLI"]
+                      },
+                      "target": { "type": "array", "items": { "type": "integer", "minimum": 0 }, "minItems": 1 },
+                      "control": { "type": "array", "items": { "type": "integer", "minimum": 0 } },
+                      "parameters": { "type": "object", "additionalProperties": { "type": "number" } }
+                    },
+                    "additionalProperties": false
+                  },
+                  "minItems": 1
+                },
+                "qubits": { "type": "integer", "minimum": 1 },
+                "target": { "type": "string", "minLength": 1 }
+              },
+              "required": ["type", "gates", "qubits", "target"]
+            }
+          ],
+          "additionalProperties": false
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/common_step_properties" },
+            {
+              "properties": {
+                "type": { "const": "quantum_measure" },
+                "circuit": { "$ref": "#/$defs/expr" },
+                "qubits": { "type": "array", "items": { "type": "integer", "minimum": 0 }, "minItems": 1 },
+                "target": { "type": "string", "minLength": 1 }
+              },
+              "required": ["type", "circuit", "qubits", "target"]
+            }
+          ],
+          "additionalProperties": false
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/common_step_properties" },
+            {
+              "properties": {
+                "type": { "const": "quantum_algorithm" },
+                "algorithm": { "type": "string", "enum": ["grover", "shor", "qft", "vqe", "qaoa"] },
+                "parameters": { "type": "object", "additionalProperties": true },
+                "target": { "type": "string", "minLength": 1 }
+              },
+              "required": ["type", "algorithm", "parameters", "target"]
+            }
+          ],
+          "additionalProperties": false
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/common_step_properties" },
+            {
+              "properties": {
+                "type": { "const": "blockchain_operation" },
+                "chain": {
+                  "type": "string",
+                  "enum": ["ethereum", "solana", "starknet", "cosmos", "polkadot", "binance", "avalanche"]
+                },
+                "action": {
+                  "type": "string",
+                  "enum": ["transfer", "mint", "burn", "governance", "bridge", "flash_loan", "swap", "liquidate", "deploy_contract"]
+                },
+                "params": { "type": "object", "additionalProperties": true },
+                "gas": {
+                  "type": "object",
+                  "properties": {
+                    "estimate": { "type": "boolean", "default": true },
+                    "limit": { "type": "integer", "minimum": 21000 },
+                    "max_fee_per_gas": { "type": "integer", "minimum": 0 },
+                    "priority_fee_per_gas": { "type": "integer", "minimum": 0 }
+                  },
+                  "additionalProperties": false
+                },
+                "replay_protection": {
+                  "type": "object",
+                  "properties": {
+                    "nonce": { "type": "string", "pattern": "^0x[a-fA-F0-9]+$" },
+                    "idempotency_key": { "type": "string", "minLength": 1 }
+                  },
+                  "additionalProperties": false
+                },
+                "target": { "type": "string", "minLength": 1 }
+              },
+              "required": ["type", "chain", "action", "params", "target"]
+            }
+          ],
+          "additionalProperties": false
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/common_step_properties" },
+            {
+              "properties": {
+                "type": { "const": "crypto_sign" },
+                "algorithm": { "type": "string", "enum": ["ecdsa", "ed25519", "rsa", "schnorr"] },
+                "data": { "$ref": "#/$defs/expr" },
+                "key": { "$ref": "#/$defs/expr" },
+                "target": { "type": "string", "minLength": 1 }
+              },
+              "required": ["type", "algorithm", "data", "key", "target"]
+            }
+          ],
+          "additionalProperties": false
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/common_step_properties" },
+            {
+              "properties": {
+                "type": { "const": "crypto_verify" },
+                "algorithm": { "type": "string", "enum": ["ecdsa", "ed25519", "rsa", "schnorr"] },
+                "data": { "$ref": "#/$defs/expr" },
+                "signature": { "$ref": "#/$defs/expr" },
+                "key": { "$ref": "#/$defs/expr" },
+                "target": { "type": "string", "minLength": 1 }
+              },
+              "required": ["type", "algorithm", "data", "signature", "key", "target"]
+            }
+          ],
+          "additionalProperties": false
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/common_step_properties" },
+            {
+              "properties": {
+                "type": { "const": "regex_match" },
+                "pattern": { "type": "string", "minLength": 1 },
+                "input": { "$ref": "#/$defs/expr" },
+                "target": { "type": "string", "minLength": 1 }
+              },
+              "required": ["type", "pattern", "input", "target"]
+            }
+          ],
+          "additionalProperties": false
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/common_step_properties" },
+            {
+              "properties": {
+                "type": { "const": "audit_log" },
+                "message": { "type": "string", "minLength": 1 },
+                "metadata": { "type": "object", "additionalProperties": true }
+              },
+              "required": ["type", "message"]
+            }
+          ],
+          "additionalProperties": false
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/common_step_properties" },
+            {
+              "properties": {
+                "type": { "const": "call_workflow" },
+                "workflow": { "type": "string", "format": "uri" },
+                "args": { "type": "object", "additionalProperties": { "$ref": "#/$defs/expr" } },
+                "target": { "type": "string", "minLength": 1 }
+              },
+              "required": ["type", "workflow", "args", "target"]
+            }
+          ],
+          "additionalProperties": false
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/common_step_properties" },
+            {
+              "properties": {
+                "type": { "type": "string", "pattern": "^custom_[a-zA-Z0-9_]+$" },
+                "custom_properties": { "type": "object", "additionalProperties": true }
+              },
+              "required": ["type", "custom_properties"]
+            }
+          ],
+          "additionalProperties": false
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/common_step_properties" },
+            {
+              "properties": {
+                "type": { "const": "game_render" },
+                "scene": { "$ref": "#/$defs/expr" },
+                "camera": {
+                  "type": "object",
+                  "properties": {
+                    "position": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+                    "rotation": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+                    "fov": { "type": "number", "minimum": 0 }
+                  },
+                  "required": ["position"],
+                  "additionalProperties": false
+                },
+                "render_target": { "type": "string", "minLength": 1 }
+              },
+              "required": ["type", "scene", "render_target"]
+            }
+          ],
+          "additionalProperties": false
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/common_step_properties" },
+            {
+              "properties": {
+                "type": { "const": "game_physics" },
+                "objects": { "type": "array", "items": { "$ref": "#/$defs/expr" }, "minItems": 1 },
+                "simulation": {
+                  "type": "object",
+                  "properties": {
+                    "type": { "type": "string", "enum": ["rigid_body", "soft_body", "fluid"] },
+                    "gravity": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+                    "time_step": { "type": "number", "minimum": 0 }
+                  },
+                  "required": ["type"],
+                  "additionalProperties": false
+                },
+                "target": { "type": "string", "minLength": 1 }
+              },
+              "required": ["type", "objects", "simulation", "target"]
+            }
+          ],
+          "additionalProperties": false
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/common_step_properties" },
+            {
+              "properties": {
+                "type": { "const": "game_multiplayer_sync" },
+                "state": { "$ref": "#/$defs/expr" },
+                "sync_type": { "type": "string", "enum": ["state", "event", "delta"] },
+                "peers": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1 },
+                "target": { "type": "string", "minLength": 1 }
+              },
+              "required": ["type", "state", "sync_type", "peers", "target"]
+            }
+          ],
+          "additionalProperties": false
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/common_step_properties" },
+            {
+              "properties": {
+                "type": { "const": "game_input" },
+                "input_type": { "type": "string", "enum": ["keyboard", "mouse", "controller", "touch", "vr", "ar"] },
+                "bindings": {
+                  "type": "object",
+                  "additionalProperties": { "type": "string", "minLength": 1 },
+                  "minProperties": 1
+                },
+                "target": { "type": "string", "minLength": 1 }
+              },
+              "required": ["type", "input_type", "bindings", "target"]
+            }
+          ],
+          "additionalProperties": false
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/common_step_properties" },
+            {
+              "properties": {
+                "type": { "const": "game_animation" },
+                "target_object": { "$ref": "#/$defs/expr" },
+                "animation": {
+                  "type": "object",
+                  "properties": {
+                    "type": { "type": "string", "enum": ["skeletal", "keyframe", "procedural"] },
+                    "parameters": { "type": "object", "additionalProperties": true },
+                    "duration": { "type": "number", "minimum": 0 }
+                  },
+                  "required": ["type"],
+                  "additionalProperties": false
+                },
+                "target": { "type": "string", "minLength": 1 }
+              },
+              "required": ["type", "target_object", "animation", "target"]
+            }
+          ],
+          "additionalProperties": false
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/common_step_properties" },
+            {
+              "properties": {
+                "type": { "const": "script" },
+                "language": {
+                  "type": "string",
+                  "enum": ["python", "javascript", "lua"],
+                  "default": "python"
+                },
+                "script": { "type": "string", "minLength": 1 },
+                "target": { "type": "string", "minLength": 1 },
+                "sandbox": {
+                  "type": "object",
+                  "properties": {
+                    "allowed_modules": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": ["math", "random", "datetime", "json", "pygame", "numpy", "mathjs", "lodash"]
+                      },
+                      "uniqueItems": true
+                    },
+                    "max_execution_time": { "type": "integer", "minimum": 1 },
+                    "max_memory": { "type": "integer", "minimum": 1024 }
+                  },
+                  "required": ["max_execution_time", "max_memory"],
+                  "additionalProperties": false
+                },
+                "inputs": {
+                  "type": "object",
+                  "additionalProperties": { "$ref": "#/$defs/expr" }
+                }
+              },
+              "required": ["type", "language", "script", "target", "sandbox"]
+            }
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "expr": {
+      "type": "object",
+      "properties": {
+        "get": { "type": "string", "pattern": "^[a-zA-Z0-9_\\.]+$", "minLength": 1 },
+        "value": { "type": ["string", "number", "boolean", "object", "array", "null"] },
+        "add": { "type": "array", "items": { "$ref": "#/$defs/valueOrExpr" }, "minItems": 2 },
+        "subtract": { "type": "array", "items": { "$ref": "#/$defs/valueOrExpr" }, "minItems": 2 },
+        "multiply": { "type": "array", "items": { "$ref": "#/$defs/valueOrExpr" }, "minItems": 2 },
+        "divide": { "type": "array", "items": { "$ref": "#/$defs/valueOrExpr" }, "minItems": 2 },
+        "compare": {
+          "type": "object",
+          "required": ["left", "op", "right"],
+          "properties": {
+            "left": { "$ref": "#/$defs/valueOrExpr" },
+            "op": { "type": "string", "enum": ["<", ">", "===", "<=", ">=", "!=="] },
+            "right": { "$ref": "#/$defs/valueOrExpr" }
+          },
+          "additionalProperties": false
+        },
+        "not": { "$ref": "#/$defs/expr" },
+        "and": { "type": "array", "items": { "$ref": "#/$defs/expr" }, "minItems": 2 },
+        "or": { "type": "array", "items": { "$ref": "#/$defs/expr" }, "minItems": 2 },
+        "concat": { "type": "array", "items": { "$ref": "#/$defs/valueOrExpr" }, "minItems": 2 },
+        "hash": {
+          "type": "object",
+          "required": ["algorithm", "input"],
+          "properties": {
+            "algorithm": { "type": "string", "enum": ["sha256", "sha3", "keccak256", "blake2b"] },
+            "input": { "$ref": "#/$defs/valueOrExpr" }
+          },
+          "additionalProperties": false
+        },
+        "regex": {
+          "type": "object",
+          "required": ["pattern", "input"],
+          "properties": {
+            "pattern": { "type": "string", "minLength": 1 },
+            "input": { "$ref": "#/$defs/valueOrExpr" }
+          },
+          "additionalProperties": false
+        },
+        "map": {
+          "type": "object",
+          "required": ["collection", "operation"],
+          "properties": {
+            "collection": { "$ref": "#/$defs/expr" },
+            "operation": { "$ref": "#/$defs/expr" }
+          },
+          "additionalProperties": false
+        },
+        "filter": {
+          "type": "object",
+          "required": ["collection", "condition"],
+          "properties": {
+            "collection": { "$ref": "#/$defs/expr" },
+            "condition": { "$ref": "#/$defs/expr" }
+          },
+          "additionalProperties": false
+        },
+        "nlp_intent": {
+          "type": "object",
+          "required": ["input", "model"],
+          "properties": {
+            "input": { "$ref": "#/$defs/valueOrExpr" },
+            "model": { "type": "string", "minLength": 1 },
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "confidence_threshold": { "type": "number", "minimum": 0, "maximum": 1 },
+                "max_results": { "type": "integer", "minimum": 1 }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "valueOrExpr": {
+      "anyOf": [
+        { "type": "string" },
+        { "type": "number" },
+        { "type": "boolean" },
+        { "type": "object" },
+        { "type": "array" },
+        { "type": "null" },
+        { "$ref": "#/$defs/expr" }
+      ]
+    },
+    "on_error": {
+      "type": "object",
+      "properties": {
+        "step_id": { "type": "string", "minLength": 1 },
+        "body": { "type": "array", "items": { "$ref": "#/$defs/step" }, "minItems": 1 }
+      },
+      "oneOf": [
+        { "required": ["step_id"] },
+        { "required": ["body"] }
+      ],
+      "additionalProperties": false
+    }
+  }
+}

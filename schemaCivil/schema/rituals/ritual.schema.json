@@ -1,0 +1,91 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Sovereign Ritual",
+  "type": "object",
+  "description": "Executable ritual for sovereign systems with recursive logic, self-awareness, biological metaphors, auditable signals, and intelligent defenses.",
+  "properties": {
+    "ritual": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+      "description": "Unique ritual identifier"
+    },
+    "agent": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Agent executing the ritual (human, AI, contract)"
+    },
+    "requires": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1,
+      "description": "Preconditions or credentials"
+    },
+    "defense": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string", "enum": ["static", "adaptive", "hormonal"] },
+          "logic": { "type": "string", "minLength": 1 },
+          "parameters": { "type": "object", "additionalProperties": true }
+        },
+        "required": ["type", "logic"],
+        "additionalProperties": false
+      },
+      "minItems": 1,
+      "description": "Intelligent defense mechanisms"
+    },
+    "response": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1,
+      "description": "Actions on ritual success"
+    },
+    "recursive": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "target_ritual": { "type": "string", "minLength": 1 },
+        "max_depth": { "type": "integer", "minimum": 1, "default": 10 },
+        "condition": { "type": "string", "minLength": 1 }
+      },
+      "required": ["enabled"],
+      "additionalProperties": false
+    },
+    "awareness": {
+      "type": "object",
+      "properties": {
+        "self_reflection": { "type": "string", "minLength": 1 },
+        "state": { "type": "object", "additionalProperties": { "type": ["string", "number", "boolean"] } }
+      },
+      "required": ["self_reflection", "state"],
+      "additionalProperties": false
+    },
+    "audit": {
+      "type": "object",
+      "properties": {
+        "origin": { "type": "string", "minLength": 1 },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "verified_by": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1 },
+        "signal_chain": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "signal_id": { "type": "string", "minLength": 1 },
+              "timestamp": { "type": "string", "format": "date-time" },
+              "source": { "type": "string", "minLength": 1 },
+              "hash": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" }
+            },
+            "required": ["signal_id", "timestamp", "source", "hash"]
+          }
+        }
+      },
+      "required": ["origin", "timestamp", "verified_by"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["ritual", "agent", "requires", "defense", "response", "awareness", "audit"],
+  "additionalProperties": false
+}

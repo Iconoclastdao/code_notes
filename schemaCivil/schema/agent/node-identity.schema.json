@@ -1,0 +1,88 @@
+{
+  "$schema": "https://jsonflow.dev/schema/v1",
+  "title": "SovereignNode",
+  "version": "1.0.0",
+  "type": "object",
+  "description": "Schema for a sovereign digital node with optional AI bonding and sovereign capabilities.",
+  "properties": {
+    "node_id": {
+      "type": "string",
+      "description": "Unique identifier for the sovereign node."
+    },
+    "username": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 50,
+      "description": "Human-readable name for the user node."
+    },
+    "wallet_address": {
+      "type": "string",
+      "pattern": "^0x[a-fA-F0-9]{40}$",
+      "description": "Ethereum-style wallet address for identity and transactions."
+    },
+    "roles": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["creator", "voter", "oracle", "editor", "moderator", "node-runner"]
+      },
+      "default": ["creator"]
+    },
+    "ai_bond": {
+      "type": "object",
+      "description": "Information about the AI bonded to this user node.",
+      "properties": {
+        "agent_id": {
+          "type": "string",
+          "description": "ID of the bonded AI agent."
+        },
+        "bond_type": {
+          "type": "string",
+          "enum": ["symmetric", "dominant", "passive"],
+          "default": "passive"
+        },
+        "shared_memory": {
+          "type": "boolean",
+          "default": false
+        },
+        "commitment_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "required": ["agent_id", "bond_type"]
+    },
+    "reputation_score": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "default": 50
+    },
+    "staking_balance": {
+      "type": "number",
+      "minimum": 0,
+      "default": 0.0
+    },
+    "votes_cast": {
+      "type": "integer",
+      "default": 0
+    },
+    "projects_owned": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of project IDs this node has launched or contributed to."
+    },
+    "ad_revenue_opt_in": {
+      "type": "boolean",
+      "default": false
+    },
+    "creation_date": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": ["node_id", "username", "wallet_address"]
+}

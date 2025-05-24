@@ -1,0 +1,219 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sovereign-hub.org/schema/module-wrapper.schema.json",
+  "title": "SovereignHubPluginSchema",
+  "description": "Meta-schema for wrapping user-defined schemas as sovereign app modules in the Sovereign Hub ecosystem.",
+  "type": "object",
+  "required": ["id", "title", "type", "sourceSchema", "owner", "permissions"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique identifier for the module.",
+      "pattern": "^[a-zA-Z0-9_-]+$",
+      "minLength": 1
+    },
+    "title": {
+      "type": "string",
+      "description": "Human-readable title of the module.",
+      "minLength": 1
+    },
+    "type": {
+      "type": "string",
+      "enum": ["plugin", "page", "ritual", "agent", "dashboard", "market", "media"],
+      "description": "Type of module determining rendering and interaction."
+    },
+    "sourceSchema": {
+      "type": "string",
+      "description": "Reference to the user-defined schema ID or URI this module extends.",
+      "format": "uri"
+    },
+    "layout": {
+      "type": "object",
+      "description": "Position and size for UI rendering.",
+      "properties": {
+        "x": { "type": "integer", "minimum": 0, "description": "X-coordinate." },
+        "y": { "type": "integer", "minimum": 0, "description": "Y-coordinate." },
+        "w": { "type": "integer", "minimum": 1, "description": "Width." },
+        "h": { "type": "integer", "minimum": 1, "description": "Height." }
+      },
+      "required": ["x", "y", "w", "h"],
+      "additionalProperties": false
+    },
+    "visibility": {
+      "type": "string",
+      "enum": ["public", "private", "dao-approved"],
+      "default": "public",
+      "description": "Access level for the module."
+    },
+    "owner": {
+      "type": "string",
+      "description": "Decentralized identifier (DID) of the module creator.",
+      "pattern": "^did:sovereign:[a-zA-Z0-9_-]+$"
+    },
+    "permissions": {
+      "type": "object",
+      "description": "Access and modification rights for the module.",
+      "properties": {
+        "forkable": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the module can be forked."
+        },
+        "editableBy": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^did:(sovereign|dao):[a-zA-Z0-9_-]+$"
+          },
+          "description": "List of DIDs allowed to edit the module.",
+          "uniqueItems": true
+        },
+        "visibleTo": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["public", "did:sovereign:[a-zA-Z0-9_-]+", "did:dao:[a-zA-Z0-9_-]+"]
+          },
+          "description": "Entities that can view the module.",
+          "uniqueItems": true
+        }
+      },
+      "required": ["forkable", "editableBy", "visibleTo"],
+      "additionalProperties": false
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata for the module.",
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Module version."
+        },
+        "created": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp."
+        },
+        "updated": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp."
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true,
+          "description": "Descriptive tags for discovery."
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri",
+            "description": "URI of dependent schemas or modules."
+          },
+          "uniqueItems": true
+        }
+      },
+      "required": ["version", "created"],
+      "additionalProperties": false
+    },
+    "renderConfig": {
+      "type": "object",
+      "description": "Configuration for rendering the module.",
+      "properties": {
+        "framework": {
+          "type": "string",
+          "enum": ["react", "vue", "svelte", "custom"],
+          "default": "react",
+          "description": "Frontend framework for rendering."
+        },
+        "component": {
+          "type": "string",
+          "description": "Main component or entry point for rendering.",
+          "minLength": 1
+        },
+        "styles": {
+          "type": "object",
+          "description": "CSS or styling configuration.",
+          "properties": {
+            "className": { "type": "string", "minLength": 1 },
+            "inline": { "type": "object", "additionalProperties": true }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": ["framework", "component"],
+      "additionalProperties": false
+    },
+    "execution": {
+      "type": "object",
+      "description": "Execution settings for rituals or agents.",
+      "properties": {
+        "entryPoint": {
+          "type": "string",
+          "description": "Main function or endpoint to execute.",
+          "minLength": 1
+        },
+        "runtime": {
+          "type": "string",
+          "enum": ["node", "python", "wasm", "custom"],
+          "description": "Runtime environment."
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "trigger": { "type": "string", "enum": ["api", "schedule", "user", "system"] }
+            },
+            "required": ["name", "trigger"],
+            "additionalProperties": false
+          },
+          "description": "Events the module listens to."
+        }
+      },
+      "required": ["entryPoint", "runtime"],
+      "additionalProperties": false
+    },
+    "integrations": {
+      "type": "object",
+      "description": "External services or APIs the module interacts with.",
+      "properties": {
+        "apis": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "endpoint": { "type": "string", "format": "uri" },
+              "auth": {
+                "type": "object",
+                "properties": {
+                  "type": { "type": "string", "enum": ["apiKey", "oauth", "none"] },
+                  "keyRef": { "type": "string", "description": "Reference to secret." }
+                },
+                "required": ["type"],
+                "additionalProperties": false
+              }
+            },
+            "required": ["name", "endpoint"],
+            "additionalProperties": false
+          }
+        },
+        "blockchains": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["ethereum", "solana", "starknet", "cosmos", "polkadot"]
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

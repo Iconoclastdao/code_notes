@@ -1,0 +1,221 @@
+{
+  "$id": "https://sovereign-revelation.org/schema/messaging.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SovereignMessaging",
+  "type": "object",
+  "description": "Schema for a sovereign messaging platform with peer-to-peer and group encrypted communications, integrated with dashboards and blockchain governance.",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique messaging platform ID, preferably a UUID or hash",
+      "default": "messaging-layer"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["messaging"],
+      "default": "messaging"
+    },
+    "title": {
+      "type": "string",
+      "description": "Display title of the messaging platform",
+      "default": "Sovereign Messaging"
+    },
+    "description": {
+      "type": "string",
+      "description": "Markdown or plaintext summary, optionally encrypted"
+    },
+    "layout": {
+      "type": "object",
+      "description": "Dashboard layout for messaging widgets",
+      "required": ["x", "y", "w", "h"],
+      "properties": {
+        "x": { "type": "integer", "minimum": 0 },
+        "y": { "type": "integer", "minimum": 0 },
+        "w": { "type": "integer", "minimum": 1 },
+        "h": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "platform": {
+      "type": "object",
+      "properties": {
+        "conversations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "participants", "soulboundIds", "messages"],
+            "properties": {
+              "id": { "type": "string", "description": "Unique conversation ID" },
+              "participants": {
+                "type": "array",
+                "items": { "type": "string", "description": "Wallet address of participant" },
+                "minItems": 2
+              },
+              "soulboundIds": {
+                "type": "array",
+                "items": { "type": "string", "description": "Soulbound ID of participant" },
+                "minItems": 2
+              },
+              "messages": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["id", "sender", "soulboundId", "content", "timestamp"],
+                  "properties": {
+                    "id": { "type": "string", "description": "Unique message ID" },
+                    "sender": { "type": "string", "description": "Wallet address of sender" },
+                    "soulboundId": { "type": "string", "description": "Sender’s soulbound ID" },
+                    "content": {
+                      "type": "object",
+                      "properties": {
+                        "encryptionType": {
+                          "type": "string",
+                          "enum": ["none", "aes-256", "ecdsa", "hybrid"],
+                          "default": "hybrid"
+                        },
+                        "data": {
+                          "type": ["string", "object"],
+                          "description": "Encrypted or plaintext message content"
+                        }
+                      },
+                      "required": ["encryptionType", "data"]
+                    },
+                    "timestamp": { "type": "string", "format": "date-time" },
+                    "status": {
+                      "type": "string",
+                      "enum": ["sent", "delivered", "read"],
+                      "default": "sent"
+                    },
+                    "readBy": {
+                      "type": "array",
+                      "items": { "type": "string", "description": "Wallet address of reader" }
+                    },
+                    "expiry": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "ISO timestamp for message expiration"
+                    }
+                  }
+                }
+              },
+              "messageType": {
+                "type": "string",
+                "enum": ["direct", "group"],
+                "default": "direct"
+              },
+              "groupId": {
+                "type": "string",
+                "description": "Group ID for group conversations"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO timestamp of conversation creation"
+              }
+            }
+          }
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "creator", "soulboundId", "members"],
+            "properties": {
+              "id": { "type": "string", "description": "Unique group ID" },
+              "creator": { "type": "string", "description": "Wallet address of group creator" },
+              "soulboundId": { "type": "string", "description": "Creator’s soulbound ID" },
+              "title": { "type": "string", "description": "Group title" },
+              "members": {
+                "type": "array",
+                "items": { "type": "string", "description": "Wallet address of member" },
+                "minItems": 2
+              },
+              "soulboundIds": {
+                "type": "array",
+                "items": { "type": "string", "description": "Soulbound ID of member" },
+                "minItems": 2
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO timestamp of group creation"
+              }
+            }
+          }
+        },
+        "encryption": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "algorithm": {
+              "type": "string",
+              "enum": ["aes-256", "ecdsa", "hybrid"],
+              "default": "hybrid"
+            },
+            "keyRotationInterval": {
+              "type": "integer",
+              "description": "Key rotation interval in minutes",
+              "default": 1440
+            }
+          },
+          "required": ["enabled", "algorithm"]
+        },
+        "karmaWage": {
+          "type": "object",
+          "description": "Rewards for messaging activity",
+          "properties": {
+            "amount": { "type": "number", "minimum": 0 },
+            "currency": { "type": "string", "description": "E.g., COVENANT" },
+            "frequency": {
+              "type": "string",
+              "enum": ["daily", "weekly", "monthly"],
+              "default": "weekly"
+            }
+          },
+          "required": ["amount", "currency"]
+        },
+        "governance": {
+          "type": "object",
+          "description": "Decentralized governance for messaging platform",
+          "properties": {
+            "votingContract": { "type": "string", "description": "Smart contract address" },
+            "proposalThreshold": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Minimum reputation for proposals"
+            },
+            "disputeResolution": {
+              "type": "string",
+              "enum": ["arbitration", "voting", "oracle"],
+              "default": "voting"
+            }
+          },
+          "required": ["votingContract", "disputeResolution"]
+        },
+        "chainConfig": {
+          "type": "object",
+          "description": "Multi-chain compatibility",
+          "properties": {
+            "chains": {
+              "type": "array",
+              "items": { "type": "string", "enum": ["ethereum", "polkadot", "cosmos", "solana"] },
+              "minItems": 1
+            },
+            "bridgeContract": { "type": "string", "description": "Cross-chain bridge address" }
+          },
+          "required": ["chains"]
+        },
+        "transactionHooks": {
+          "type": "object",
+          "description": "Lifecycle hooks for messaging actions",
+          "properties": {
+            "onMessageSend": { "type": "string", "description": "Hook for message sending" },
+            "onGroupCreate": { "type": "string", "description": "Hook for group creation" },
+            "onConversationStart": { "type": "string", "description": "Hook for conversation creation" }
+          }
+        }
+      },
+      "required": ["conversations", "groups", "encryption", "governance", "chainConfig"]
+    }
+  },
+  "required": ["id", "type", "title", "layout", "platform"]
+}

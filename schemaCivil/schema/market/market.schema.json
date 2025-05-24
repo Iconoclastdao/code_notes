@@ -1,0 +1,225 @@
+{
+  "$id": "https://sovereign-revelation.org/schema/market.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SovereignMarket",
+  "description": "Decentralized sovereign marketplace schema: agent-to-agent bartering, verified intent exchange, tokenized goods & services with soulbound identity, on-chain reputation, and multi-chain support.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique market ID, preferably a UUID or hash"
+    },
+    "title": {
+      "type": "string",
+      "description": "Display title of the market"
+    },
+    "description": {
+      "type": "string",
+      "description": "Markdown or plaintext summary of market purpose, optionally encrypted"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["market"],
+      "default": "market"
+    },
+    "source": {
+      "type": "string",
+      "description": "Optional external API endpoint for loading offers, must be a secure HTTPS URL"
+    },
+    "layout": {
+      "type": "object",
+      "properties": {
+        "x": { "type": "integer", "minimum": 0 },
+        "y": { "type": "integer", "minimum": 0 },
+        "w": { "type": "integer", "minimum": 1 },
+        "h": { "type": "integer", "minimum": 1 }
+      },
+      "required": ["x", "y", "w", "h"]
+    },
+    "market": {
+      "type": "object",
+      "properties": {
+        "offers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "title", "price", "currency", "agent", "soulboundId"],
+            "properties": {
+              "id": { "type": "string", "description": "Unique offer ID, preferably a UUID or hash" },
+              "title": { "type": "string", "description": "Name of the good or service" },
+              "description": { 
+                "type": "string", 
+                "description": "Detailed explanation of the offer, optionally encrypted for privacy"
+              },
+              "price": { "type": "number", "minimum": 0 },
+              "currency": { 
+                "type": "string", 
+                "description": "E.g., SOL, ETH, DAI, COVENANT, must be in acceptedCurrencies"
+              },
+              "agent": { 
+                "type": "string", 
+                "description": "ID of offering agent or node, tied to soulbound identity"
+              },
+              "soulboundId": {
+                "type": "string",
+                "description": "Non-transferable token ID for agent, ensuring trust and traceability"
+              },
+              "reputationScore": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Agent's on-chain reputation score, updated via market interactions"
+              },
+              "tags": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Searchable tags like 'AI', 'ritual', 'time', 'NFT'"
+              },
+              "verified": { "type": "boolean", "default": false },
+              "digital": { "type": "boolean", "default": true },
+              "accessType": {
+                "type": "string",
+                "enum": ["download", "session", "key", "code", "ritual"],
+                "default": "session"
+              },
+              "accessPayload": {
+                "type": "object",
+                "description": "Encrypted (e.g., AES-256 or ECDSA) or plaintext payload for access control",
+                "properties": {
+                  "encryptionType": {
+                    "type": "string",
+                    "enum": ["none", "aes-256", "ecdsa"],
+                    "default": "none"
+                  },
+                  "data": {
+                    "type": ["string", "object"],
+                    "description": "Encrypted or plaintext data for access"
+                  }
+                },
+                "required": ["encryptionType", "data"]
+              },
+              "timeLimit": {
+                "type": "integer",
+                "description": "Optional session length in minutes (e.g., oracle consult)",
+                "minimum": 0
+              },
+              "expiry": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO timestamp for offer expiration"
+              }
+            }
+          }
+        },
+        "allowUserListings": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether users can create their own listings"
+        },
+        "transactionHooks": {
+          "type": "object",
+          "description": "Lifecycle hooks for transactions, callable on-chain or off-chain",
+          "properties": {
+            "onBuy": { 
+              "type": "string", 
+              "description": "Smart contract function or ritual on purchase"
+            },
+            "onVerify": { 
+              "type": "string", 
+              "description": "Smart contract function or ritual for verification"
+            },
+            "onExpire": { 
+              "type": "string", 
+              "description": "Smart contract function or ritual on expiration"
+            }
+          }
+        },
+        "acceptedCurrencies": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["ETH", "DAI", "SOL", "COVENANT"],
+          "description": "Tokens or currencies allowed for trade"
+        },
+        "feeStructure": {
+          "type": "object",
+          "description": "Fees per transaction, sent to a DAO or agent",
+          "properties": {
+            "percent": { 
+              "type": "number", 
+              "minimum": 0, 
+              "maximum": 100 
+            },
+            "recipient": { 
+              "type": "string",
+              "description": "Address or ID of fee recipient (e.g., DAO contract)"
+            }
+          }
+        },
+        "karmaWage": {
+          "type": "object",
+          "description": "Economic incentive for market activity",
+          "properties": {
+            "amount": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Karma tokens rewarded per action (e.g., listing, trading)"
+            },
+            "currency": {
+              "type": "string",
+              "description": "Token for karma wage, e.g., COVENANT"
+            },
+            "frequency": {
+              "type": "string",
+              "enum": ["daily", "weekly", "monthly"],
+              "default": "weekly",
+              "description": "Reward distribution frequency"
+            }
+          },
+          "required": ["amount", "currency"]
+        },
+        "governance": {
+          "type": "object",
+          "description": "Decentralized governance for market rules and disputes",
+          "properties": {
+            "votingContract": {
+              "type": "string",
+              "description": "Smart contract address for governance voting"
+            },
+            "proposalThreshold": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Minimum reputation or tokens to submit a proposal"
+            },
+            "disputeResolution": {
+              "type": "string",
+              "enum": ["arbitration", "voting", "oracle"],
+              "default": "voting",
+              "description": "Method for resolving disputes"
+            }
+          },
+          "required": ["votingContract", "disputeResolution"]
+        },
+        "chainConfig": {
+          "type": "object",
+          "description": "Multi-chain compatibility configuration",
+          "properties": {
+            "chains": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["ethereum", "polkadot", "cosmos", "solana"]
+              },
+              "description": "Supported blockchain networks"
+            },
+            "bridgeContract": {
+              "type": "string",
+              "description": "Cross-chain bridge contract address"
+            }
+          },
+          "required": ["chains"]
+        }
+      },
+      "required": ["offers", "governance", "chainConfig"]
+    }
+  },
+  "required": ["id", "title", "type", "layout", "market"]
+}

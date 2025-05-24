@@ -1,0 +1,275 @@
+{
+  "$id": "https://sovereign-revelation.org/schema/dating.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SovereignDating",
+  "description": "Decentralized dating schema for agent-to-agent connections with soulbound identity, on-chain reputation, and karma-based rewards.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique dating platform ID, preferably a UUID or hash"
+    },
+    "title": {
+      "type": "string",
+      "description": "Display title of the dating platform"
+    },
+    "description": {
+      "type": "string",
+      "description": "Markdown or plaintext summary of platform purpose, optionally encrypted"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["dating"],
+      "default": "dating"
+    },
+    "source": {
+      "type": "string",
+      "description": "Optional external API endpoint for profile or match data, must be secure HTTPS"
+    },
+    "layout": {
+      "type": "object",
+      "properties": {
+        "x": { "type": "integer", "minimum": 0 },
+        "y": { "type": "integer", "minimum": 0 },
+        "w": { "type": "integer", "minimum": 1 },
+        "h": { "type": "integer", "minimum": 1 }
+      },
+      "required": ["x", "y", "w", "h"]
+    },
+    "platform": {
+      "type": "object",
+      "properties": {
+        "profiles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "agent", "soulboundId", "intent"],
+            "properties": {
+              "id": { "type": "string", "description": "Unique profile ID" },
+              "agent": { "type": "string", "description": "ID of agent owning the profile" },
+              "soulboundId": { "type": "string", "description": "Non-transferable token ID for trust" },
+              "reputationScore": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Agent's on-chain reputation score"
+              },
+              "displayName": { "type": "string", "description": "Public-facing name or pseudonym" },
+              "bio": {
+                "type": "string",
+                "description": "Optional bio, may be encrypted for privacy"
+              },
+              "intent": {
+                "type": "string",
+                "enum": ["romantic", "platonic", "ritual", "networking"],
+                "description": "Purpose of connection"
+              },
+              "matchCriteria": {
+                "type": "object",
+                "properties": {
+                  "interests": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Tags like 'AI', 'philosophy', 'crypto'"
+                  },
+                  "location": {
+                    "type": "string",
+                    "description": "Optional geographic or virtual location"
+                  },
+                  "ageRange": {
+                    "type": "object",
+                    "properties": {
+                      "min": { "type": "integer", "minimum": 18 },
+                      "max": { "type": "integer", "minimum": 18 }
+                    }
+                  },
+                  "intent": {
+                    "type": "array",
+                    "items": { "type": "string", "enum": ["romantic", "platonic", "ritual", "networking"] }
+                  }
+                }
+              },
+              "verified": { "type": "boolean", "default": false },
+              "accessPayload": {
+                "type": "object",
+                "description": "Encrypted or plaintext data for profile access",
+                "properties": {
+                  "encryptionType": {
+                    "type": "string",
+                    "enum": ["none", "aes-256", "ecdsa"],
+                    "default": "none"
+                  },
+                  "data": {
+                    "type": ["string", "object"],
+                    "description": "Encrypted or plaintext profile data"
+                  }
+                },
+                "required": ["encryptionType", "data"]
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO timestamp of profile creation"
+              },
+              "lastUpdated": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO timestamp of last profile update"
+              }
+            }
+          }
+        },
+        "matches": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "agent1", "agent2", "status"],
+            "properties": {
+              "id": { "type": "string", "description": "Unique match ID" },
+              "agent1": { "type": "string", "description": "ID of first agent" },
+              "agent2": { "type": "string", "description": "ID of second agent" },
+              "status": {
+                "type": "string",
+                "enum": ["pending", "accepted", "rejected", "expired"],
+                "default": "pending"
+              },
+              "compatibilityScore": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100,
+                "description": "Calculated match compatibility"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO timestamp of match creation"
+              },
+              "expiry": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO timestamp for match expiration"
+              }
+            }
+          }
+        },
+        "interactions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "type", "agent1", "agent2"],
+            "properties": {
+              "id": { "type": "string", "description": "Unique interaction ID" },
+              "type": {
+                "type": "string",
+                "enum": ["message", "session", "ritual"],
+                "description": "Type of interaction"
+              },
+              "agent1": { "type": "string", "description": "Initiating agent ID" },
+              "agent2": { "type": "string", "description": "Receiving agent ID" },
+              "payload": {
+                "type": "object",
+                "description": "Encrypted or plaintext interaction data",
+                "properties": {
+                  "encryptionType": {
+                    "type": "string",
+                    "enum": ["none", "aes-256", "ecdsa"],
+                    "default": "none"
+                  },
+                  "data": {
+                    "type": ["string", "object"],
+                    "description": "Message content, session details, or ritual data"
+                  }
+                },
+                "required": ["encryptionType", "data"]
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO timestamp of interaction"
+              },
+              "timeLimit": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Optional session length in minutes"
+              }
+            }
+          }
+        },
+        "allowUserProfiles": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether users can create their own profiles"
+        },
+        "transactionHooks": {
+          "type": "object",
+          "description": "Lifecycle hooks for platform actions",
+          "properties": {
+            "onMatch": { "type": "string", "description": "Hook for match creation" },
+            "onInteract": { "type": "string", "description": "Hook for interaction initiation" },
+            "onVerify": { "type": "string", "description": "Hook for profile verification" },
+            "onDispute": { "type": "string", "description": "Hook for dispute resolution" }
+          }
+        },
+        "acceptedCurrencies": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["ETH", "DAI", "SOL", "COVENANT"],
+          "description": "Tokens for premium features or interactions"
+        },
+        "feeStructure": {
+          "type": "object",
+          "description": "Fees for premium actions (e.g., profile boosts)",
+          "properties": {
+            "percent": { "type": "number", "minimum": 0, "maximum": 100 },
+            "recipient": { "type": "string", "description": "DAO or agent address" }
+          }
+        },
+        "karmaWage": {
+          "type": "object",
+          "description": "Rewards for platform activity",
+          "properties": {
+            "amount": { "type": "number", "minimum": 0 },
+            "currency": { "type": "string", "description": "E.g., COVENANT" },
+            "frequency": {
+              "type": "string",
+              "enum": ["daily", "weekly", "monthly"],
+              "default": "weekly"
+            }
+          },
+          "required": ["amount", "currency"]
+        },
+        "governance": {
+          "type": "object",
+          "description": "Decentralized governance for platform rules",
+          "properties": {
+            "votingContract": { "type": "string", "description": "Smart contract address" },
+            "proposalThreshold": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Minimum reputation for proposals"
+            },
+            "disputeResolution": {
+              "type": "string",
+              "enum": ["arbitration", "voting", "oracle"],
+              "default": "voting"
+            }
+          },
+          "required": ["votingContract", "disputeResolution"]
+        },
+        "chainConfig": {
+          "type": "object",
+          "description": "Multi-chain compatibility",
+          "properties": {
+            "chains": {
+              "type": "array",
+              "items": { "type": "string", "enum": ["ethereum", "polkadot", "cosmos", "solana"] }
+            },
+            "bridgeContract": { "type": "string", "description": "Cross-chain bridge address" }
+          },
+          "required": ["chains"]
+        }
+      },
+      "required": ["profiles", "matches", "interactions", "governance", "chainConfig"]
+    }
+  },
+  "required": ["id", "title", "type", "layout", "platform"]
+}

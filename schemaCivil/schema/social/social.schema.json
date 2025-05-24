@@ -1,0 +1,115 @@
+{
+  "$id": "https://sovereign-revelation.org/schema/social.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SovereignSocialGraph",
+  "type": "object",
+  "description": "Schema for decentralized identity feeds, posts, video content, comments, reputation, and node bonding.",
+  "properties": {
+    "id": { "type": "string", "default": "social-graph" },
+    "title": { "type": "string", "default": "Sovereign Social" },
+    "type": { "type": "string", "enum": ["social"], "default": "social" },
+    "layout": {
+      "type": "object",
+      "required": ["x", "y", "w", "h"],
+      "properties": {
+        "x": { "type": "integer" },
+        "y": { "type": "integer" },
+        "w": { "type": "integer" },
+        "h": { "type": "integer" }
+      }
+    },
+    "social": {
+      "type": "object",
+      "properties": {
+        "posts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "author", "content", "timestamp"],
+            "properties": {
+              "id": { "type": "string" },
+              "author": { "type": "string" },
+              "content": { "type": "string" },
+              "timestamp": { "type": "string", "format": "date-time" },
+              "tags": { "type": "array", "items": { "type": "string" } },
+              "likes": { "type": "integer", "default": 0 },
+              "comments": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["author", "content", "timestamp"],
+                  "properties": {
+                    "author": { "type": "string" },
+                    "content": { "type": "string" },
+                    "timestamp": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "videos": {
+          "type": "array",
+          "description": "User-uploaded decentralized video objects",
+          "items": {
+            "type": "object",
+            "required": ["id", "author", "title", "url", "timestamp"],
+            "properties": {
+              "id": { "type": "string" },
+              "author": { "type": "string" },
+              "title": { "type": "string" },
+              "description": { "type": "string" },
+              "url": {
+                "type": "string",
+                "description": "IPFS hash or decentralized storage URI"
+              },
+              "thumbnail": { "type": "string", "description": "Optional preview image" },
+              "tags": { "type": "array", "items": { "type": "string" } },
+              "timestamp": { "type": "string", "format": "date-time" },
+              "views": { "type": "integer", "default": 0 },
+              "likes": { "type": "integer", "default": 0 },
+              "dislikes": { "type": "integer", "default": 0 },
+              "comments": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["author", "content", "timestamp"],
+                  "properties": {
+                    "author": { "type": "string" },
+                    "content": { "type": "string" },
+                    "timestamp": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "follows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["from", "to"],
+            "properties": {
+              "from": { "type": "string" },
+              "to": { "type": "string" },
+              "bondScore": {
+                "type": "number",
+                "description": "Trust or alignment score",
+                "default": 1.0
+              }
+            }
+          }
+        },
+        "reputation": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number",
+            "description": "Reputation score per user"
+          }
+        }
+      },
+      "required": ["posts", "videos"]
+    }
+  },
+  "required": ["id", "title", "type", "layout", "social"]
+}

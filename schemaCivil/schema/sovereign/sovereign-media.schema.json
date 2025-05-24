@@ -1,0 +1,220 @@
+{
+  "$id": "https://sovereign-revelation.org/schema/sovereign-media.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SovereignMediaPlatform",
+  "description": "Unified schema for decentralized social, video, monetization, and governance platform.",
+  "type": "object",
+  "required": ["id", "type", "layout", "media"],
+  "properties": {
+    "id": { "type": "string", "default": "sovereign-media" },
+    "title": { "type": "string", "default": "Sovereign Media Network" },
+    "type": { "type": "string", "enum": ["media"], "default": "media" },
+    "layout": {
+      "type": "object",
+      "required": ["x", "y", "w", "h"],
+      "properties": {
+        "x": { "type": "integer" },
+        "y": { "type": "integer" },
+        "w": { "type": "integer" },
+        "h": { "type": "integer" }
+      }
+    },
+    "media": {
+      "type": "object",
+      "required": ["social", "video", "creators", "ads", "governance"],
+      "properties": {
+        "social": {
+          "type": "object",
+          "properties": {
+            "posts": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["id", "author", "content", "timestamp"],
+                "properties": {
+                  "id": { "type": "string" },
+                  "author": { "type": "string" },
+                  "content": { "type": "string" },
+                  "timestamp": { "type": "string", "format": "date-time" },
+                  "tags": { "type": "array", "items": { "type": "string" } },
+                  "likes": { "type": "integer", "default": 0 },
+                  "comments": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["author", "content", "timestamp"],
+                      "properties": {
+                        "author": { "type": "string" },
+                        "content": { "type": "string" },
+                        "timestamp": { "type": "string", "format": "date-time" }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "follows": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["from", "to"],
+                "properties": {
+                  "from": { "type": "string" },
+                  "to": { "type": "string" },
+                  "bondScore": { "type": "number", "default": 1.0 }
+                }
+              }
+            },
+            "reputation": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "video": {
+          "type": "object",
+          "properties": {
+            "videos": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["id", "title", "creator", "url", "timestamp"],
+                "properties": {
+                  "id": { "type": "string" },
+                  "title": { "type": "string" },
+                  "creator": { "type": "string" },
+                  "url": { "type": "string", "format": "uri" },
+                  "thumbnail": { "type": "string", "format": "uri" },
+                  "duration": { "type": "integer" },
+                  "tags": { "type": "array", "items": { "type": "string" } },
+                  "timestamp": { "type": "string", "format": "date-time" },
+                  "comments": { "$ref": "#/properties/media/properties/social/properties/posts/items/properties/comments" },
+                  "views": { "type": "integer", "default": 0 },
+                  "likes": { "type": "integer", "default": 0 },
+                  "revenue": {
+                    "type": "object",
+                    "properties": {
+                      "ads": { "type": "number", "default": 0 },
+                      "subscriptions": { "type": "number", "default": 0 },
+                      "tips": { "type": "number", "default": 0 }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "creators": {
+          "type": "object",
+          "properties": {
+            "profiles": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["id", "name", "wallet"],
+                "properties": {
+                  "id": { "type": "string" },
+                  "name": { "type": "string" },
+                  "wallet": { "type": "string" },
+                  "bio": { "type": "string" },
+                  "banner": { "type": "string", "format": "uri" },
+                  "tiers": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": { "type": "string" },
+                        "price": { "type": "number" },
+                        "benefits": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "ads": {
+          "type": "object",
+          "properties": {
+            "units": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["id", "owner", "content", "target"],
+                "properties": {
+                  "id": { "type": "string" },
+                  "owner": { "type": "string" },
+                  "content": { "type": "string" },
+                  "target": { "type": "string" },
+                  "budget": { "type": "number" },
+                  "impressions": { "type": "integer", "default": 0 }
+                }
+              }
+            },
+            "campaigns": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "advertiser": { "type": "string" },
+                  "budget": { "type": "number" },
+                  "startDate": { "type": "string", "format": "date-time" },
+                  "endDate": { "type": "string", "format": "date-time" },
+                  "metrics": {
+                    "type": "object",
+                    "properties": {
+                      "clicks": { "type": "integer" },
+                      "ctr": { "type": "number" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "governance": {
+          "type": "object",
+          "properties": {
+            "proposals": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": { "type": "string" },
+                  "title": { "type": "string" },
+                  "creator": { "type": "string" },
+                  "description": { "type": "string" },
+                  "options": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  },
+                  "votes": {
+                    "type": "object",
+                    "additionalProperties": { "type": "string" }
+                  },
+                  "status": { "type": "string", "enum": ["open", "closed", "executed"] }
+                }
+              }
+            },
+            "moderation": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "action": { "type": "string", "enum": ["flag", "hide", "ban"] },
+                  "target": { "type": "string" },
+                  "reason": { "type": "string" },
+                  "by": { "type": "string" },
+                  "timestamp": { "type": "string", "format": "date-time" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

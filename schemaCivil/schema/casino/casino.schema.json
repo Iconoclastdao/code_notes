@@ -1,0 +1,156 @@
+{
+  "$id": "https://sovereign-revelation.org/schema/casino.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SovereignCasino",
+  "type": "object",
+  "description": "Comprehensive decentralized casino schema integrating on-chain entropy, game sessions, player stats, and compliance.",
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]{1,50}$", "description": "Unique panel ID" },
+    "title": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "type": { "type": "string", "enum": ["casino"], "default": "casino" },
+    "version": { "type": "string", "default": "1.0.0", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "layout": {
+      "type": "object",
+      "required": ["x", "y", "w", "h"],
+      "properties": {
+        "x": { "type": "integer", "minimum": 0 },
+        "y": { "type": "integer", "minimum": 0 },
+        "w": { "type": "integer", "minimum": 1 },
+        "h": { "type": "integer", "minimum": 1 },
+        "responsive": { "type": "boolean", "default": true },
+        "theme": { "type": "string", "enum": ["light", "dark", "custom"], "default": "light" }
+      }
+    },
+    "casino": {
+      "type": "object",
+      "required": ["entropy", "games", "sessions", "rewardPools", "compliance"],
+      "properties": {
+        "entropy": {
+          "type": "object",
+          "description": "On-chain entropy source integration (via Entropy.sol)",
+          "required": ["entropySource", "contractAddress", "method"],
+          "properties": {
+            "entropySource": { "type": "string", "enum": ["onchain", "offchain"], "default": "onchain" },
+            "contractAddress": { "type": "string", "pattern": "^0x[a-fA-F0-9]{40}$" },
+            "method": { "type": "string", "default": "getEntropy" },
+            "agentTrigger": { "type": "string", "format": "uuid", "description": "Optional agent ID for entropy oracle" },
+            "cooldown": { "type": "integer", "minimum": 0, "default": 15 },
+            "lastFetched": { "type": "string", "format": "date-time", "description": "Timestamp of last entropy fetch" },
+            "entropyValue": { "type": "string", "description": "Latest entropy value" }
+          }
+        },
+        "games": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "name", "engine", "status"],
+            "properties": {
+              "id": { "type": "string", "format": "uuid" },
+              "name": { "type": "string", "minLength": 1, "maxLength": 50 },
+              "engine": { "type": "string", "enum": ["dice", "slots", "roulette", "cards", "custom"] },
+              "rules": { "type": "string", "minLength": 1 },
+              "minBet": { "type": "number", "minimum": 0.01, "default": 1 },
+              "maxBet": { "type": "number", "minimum": 1, "default": 1000 },
+              "currency": { "type": "string", "enum": ["SOL", "ETH", "USD", "BTC"], "default": "SOL" },
+              "payoutTable": { "type": "object", "additionalProperties": { "type": "number", "minimum": 0 } },
+              "requiresEntropy": { "type": "boolean", "default": true },
+              "status": { "type": "string", "enum": ["active", "paused", "disabled"], "default": "active" },
+              "totalBets": { "type": "number", "minimum": 0, "default": 0 },
+              "createdAt": { "type": "string", "format": "date-time" }
+            }
+          },
+          "minItems": 1
+        },
+        "sessions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "user", "game", "startTime"],
+            "properties": {
+              "id": { "type": "string", "format": "uuid" },
+              "user": { "type": "string", "format": "uuid" },
+              "game": { "type": "string", "format": "uuid" },
+              "startTime": { "type": "string", "format": "date-time" },
+              "endTime": { "type": "string", "format": "date-time" },
+              "betsPlaced": { "type": "integer", "minimum": 0, "default": 0 },
+              "totalWagered": { "type": "number", "minimum": 0, "default": 0 },
+              "totalWon": { "type": "number", "minimum": 0, "default": 0 },
+              "status": { "type": "string", "enum": ["active", "completed", "cancelled"], "default": "active" }
+            }
+          }
+        },
+        "rewardPools": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "currency", "totalAmount"],
+            "properties": {
+              "id": { "type": "string", "format": "uuid" },
+              "currency": { "type": "string", "enum": ["SOL", "ETH", "USD", "BTC"] },
+              "totalAmount": { "type": "number", "minimum": 0 },
+              "contributors": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "user": { "type": "string", "format": "uuid" },
+                    "amount": { "type": "number", "minimum": 0 }
+                  }
+                }
+              },
+              "rewardRate": { "type": "number", "minimum": 0, "default": 0.05 }
+            }
+          }
+        },
+        "agentWagers": { "type": "boolean", "default": true },
+        "transactionHooks": {
+          "type": "object",
+          "properties": {
+            "onWin": { "type": "string", "description": "Contract or function to call on win" },
+            "onLose": { "type": "string", "description": "Contract or function to call on loss" },
+            "onDraw": { "type": "string", "description": "Contract or function to call on draw" }
+          }
+        },
+        "auditTrail": { "type": "boolean", "default": true },
+        "leaderboard": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "entries": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "user": { "type": "string", "format": "uuid" },
+                  "score": { "type": "number", "minimum": 0 },
+                  "lastUpdated": { "type": "string", "format": "date-time" }
+                }
+              }
+            }
+          }
+        },
+        "compliance": {
+          "type": "object",
+          "properties": {
+            "kycRequired": { "type": "boolean", "default": false },
+            "maxBetLimit": { "type": "number", "minimum": 0, "description": "Global max bet limit" },
+            "restrictedJurisdictions": { "type": "array", "items": { "type": "string", "pattern": "^[A-Z]{2,3}$" } },
+            "auditLog": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "event": { "type": "string" },
+                  "user": { "type": "string", "format": "uuid" },
+                  "timestamp": { "type": "string", "format": "date-time" },
+                  "details": { "type": "string" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "required": ["id", "title", "type", "layout", "casino"]
+}

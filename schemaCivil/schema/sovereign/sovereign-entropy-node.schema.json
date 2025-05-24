@@ -1,0 +1,237 @@
+{
+  "$id": "https://sovereign-revelation.org/schema/nodes/sovereign-entropy-node.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SovereignEntropyNode",
+  "type": "object",
+  "description": "Schema for a sovereign node combining entropy fetching with user-centric and AI-bonded capabilities, supporting soulbound identity, on-chain reputation, and multi-chain governance.",
+  "properties": {
+    "node_id": {
+      "type": "string",
+      "description": "Unique identifier for the sovereign entropy node, preferably a UUID or hash"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["entropy-node"],
+      "default": "entropy-node"
+    },
+    "username": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 50,
+      "description": "Human-readable name for the node"
+    },
+    "wallet_address": {
+      "type": "string",
+      "pattern": "^0x[a-fA-F0-9]{40}$",
+      "description": "Ethereum-style wallet address for identity and transactions"
+    },
+    "soulboundId": {
+      "type": "string",
+      "description": "Non-transferable token ID for node identity, ensuring trust and traceability"
+    },
+    "reputation_score": {
+      "type": "number",
+      "minimum": 0,
+      "description": "On-chain reputation score updated via entropy contributions, voting, or project activity"
+    },
+    "roles": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["creator", "voter", "oracle", "editor", "moderator", "node-runner", "entropy-provider"]
+      },
+      "default": ["creator", "entropy-provider"],
+      "description": "Roles the node can perform"
+    },
+    "ai_bond": {
+      "type": "object",
+      "description": "Information about the AI bonded to this node",
+      "properties": {
+        "agent_id": { "type": "string", "description": "ID of the bonded AI agent" },
+        "bond_type": {
+          "type": "string",
+          "enum": ["symmetric", "dominant", "passive"],
+          "default": "passive"
+        },
+        "shared_memory": { "type": "boolean", "default": false },
+        "commitment_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Strength of AI-node bond"
+        },
+        "accessPayload": {
+          "type": "object",
+          "description": "Encrypted or plaintext data for AI bond access",
+          "properties": {
+            "encryptionType": {
+              "type": "string",
+              "enum": ["none", "aes-256", "ecdsa"],
+              "default": "none"
+            },
+            "data": {
+              "type": ["string", "object"],
+              "description": "Encrypted or plaintext AI bond data"
+            }
+          },
+          "required": ["encryptionType", "data"]
+        }
+      },
+      "required": ["agent_id", "bond_type"]
+    },
+    "entropy_agent": {
+      "type": "object",
+      "description": "Configuration for fetching and processing entropy",
+      "properties": {
+        "role": { "type": "string", "default": "entropy", "description": "Agent role" },
+        "contracts": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of Entropy.sol contract addresses",
+          "minItems": 1
+        },
+        "method": { 
+          "type": "string", 
+          "default": "getEntropy", 
+          "description": "Contract method to fetch entropy"
+        },
+        "format": { 
+          "type": "string", 
+          "enum": ["hex", "int", "float"], 
+          "default": "int" 
+        },
+        "postProcess": {
+          "type": "object",
+          "description": "Optional post-processing configuration",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["js", "wasm", "none"],
+              "default": "none"
+            },
+            "callback": {
+              "type": "string",
+              "description": "JS or WASM callback function or reference"
+            },
+            "encryptionType": {
+              "type": "string",
+              "enum": ["none", "aes-256", "ecdsa"],
+              "default": "none"
+            }
+          },
+          "required": ["type"]
+        },
+        "cacheTTL": { 
+          "type": "integer", 
+          "minimum": 0, 
+          "default": 10, 
+          "description": "Cache time-to-live in seconds"
+        },
+        "retryPolicy": {
+          "type": "object",
+          "description": "Retry configuration for entropy fetching",
+          "properties": {
+            "maxAttempts": { "type": "integer", "minimum": 1, "default": 3 },
+            "backoffMs": { "type": "integer", "minimum": 100, "default": 1000 }
+          },
+          "required": ["maxAttempts", "backoffMs"]
+        }
+      },
+      "required": ["contracts", "method"]
+    },
+    "staking_balance": {
+      "type": "number",
+      "minimum": 0,
+      "default": 0.0,
+      "description": "Staked tokens for node participation"
+    },
+    "votes_cast": {
+      "type": "integer",
+      "default": 0,
+      "description": "Number of governance votes cast by the node"
+    },
+    "projects_owned": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "List of project IDs this node has launched or contributed to"
+    },
+    "ad_revenue_opt_in": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether node opts into ad revenue sharing"
+    },
+    "karmaWage": {
+      "type": "object",
+      "description": "Economic incentive for node activity",
+      "properties": {
+        "amount": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Karma tokens rewarded per action"
+        },
+        "currency": {
+          "type": "string",
+          "description": "Token for karma wage, e.g., COVENANT"
+        },
+        "frequency": {
+          "type": "string",
+          "enum": ["daily", "weekly", "monthly"],
+          "default": "weekly"
+        }
+      },
+      "required": ["amount", "currency"]
+    },
+    "governance": {
+      "type": "object",
+      "description": "Decentralized governance for node operations",
+      "properties": {
+        "votingContract": { 
+          "type": "string", 
+          "description": "Smart contract address for governance voting" 
+        },
+        "proposalThreshold": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Minimum reputation or tokens to submit a proposal"
+        },
+        "disputeResolution": {
+          "type": "string",
+          "enum": ["arbitration", "voting", "oracle"],
+          "default": "voting"
+        }
+      },
+      "required": ["votingContract", "disputeResolution"]
+    },
+    "chainConfig": {
+      "type": "object",
+      "description": "Multi-chain compatibility configuration",
+      "properties": {
+        "chains": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["ethereum", "polkadot", "cosmos", "solana"] },
+          "minItems": 1
+        },
+        "bridgeContract": {
+          "type": "string",
+          "description": "Cross-chain bridge contract address"
+        }
+      },
+      "required": ["chains"]
+    },
+    "creation_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO timestamp of node creation"
+    },
+    "transactionHooks": {
+      "type": "object",
+      "description": "Lifecycle hooks for node actions",
+      "properties": {
+        "onEntropyFetch": { "type": "string", "description": "Hook for entropy fetching" },
+        "onVote": { "type": "string", "description": "Hook for voting actions" },
+        "onProjectCreate": { "type": "string", "description": "Hook for project creation" }
+      }
+    }
+  },
+  "required": ["node_id", "username", "wallet_address", "soulboundId", "entropy_agent", "governance", "chainConfig", "creation_date"]
+}

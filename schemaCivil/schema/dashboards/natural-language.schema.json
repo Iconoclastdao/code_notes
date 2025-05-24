@@ -1,0 +1,132 @@
+{
+  "$id": "https://sovereign-revelation.org/schema/natural-language.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "NaturalLanguagePanel",
+  "type": "object",
+  "description": "Schema for natural language interaction panel with agent orchestration, analogy mapping, and intent binding.",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique identifier for the panel"
+    },
+    "title": {
+      "type": "string",
+      "description": "Display title of the panel"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["nl"],
+      "default": "nl",
+      "description": "Panel type, fixed to 'nl' for natural language"
+    },
+    "source": {
+      "type": "string",
+      "description": "Agent source path or model ID for the NLP engine"
+    },
+    "layout": {
+      "type": "object",
+      "required": ["x", "y", "w", "h"],
+      "properties": {
+        "x": { "type": "integer", "minimum": 0 },
+        "y": { "type": "integer", "minimum": 0 },
+        "w": { "type": "integer", "minimum": 1 },
+        "h": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "nl": {
+      "type": "object",
+      "required": ["mode", "model", "bindingTarget"],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["chat", "command", "query", "ritual", "mirror"],
+          "default": "chat"
+        },
+        "model": {
+          "type": "string",
+          "description": "Primary NLP model or agent to be used"
+        },
+        "multiAgent": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of orchestrated agents if using multi-model coordination"
+        },
+        "bindingTarget": {
+          "type": "string",
+          "description": "Target panel or system component this panel binds to"
+        },
+        "promptTemplate": {
+          "type": "string",
+          "description": "Template string for constructing contextual prompts"
+        },
+        "mapIntent": {
+          "type": "object",
+          "description": "Intent mapping from keywords to schema bindings",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "analogyMap": {
+          "type": "object",
+          "description": "Mapping of abstract system concepts to human metaphors",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["metaphor", "example", "schemaBinding"],
+            "properties": {
+              "metaphor": { "type": "string" },
+              "example": { "type": "string" },
+              "schemaBinding": { "type": "string" }
+            }
+          }
+        },
+        "language": {
+          "type": "string",
+          "pattern": "^[a-z]{2}(-[A-Z]{2})?$",
+          "default": "en"
+        },
+        "history": {
+          "type": "boolean",
+          "default": true
+        },
+        "contextWindow": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 1000
+        },
+        "confidenceThreshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.7
+        },
+        "fallbackAction": {
+          "type": "string",
+          "description": "Action to execute if the agent fails or intent is not clear"
+        },
+        "fallbackFlow": {
+          "type": "array",
+          "description": "Chain of fallback actions if initial interpretation fails",
+          "items": { "type": "string" }
+        },
+        "preprocessing": {
+          "type": "object",
+          "properties": {
+            "stripStopWords": { "type": "boolean", "default": true },
+            "convertToLowercase": { "type": "boolean", "default": true },
+            "sanitizeHtml": { "type": "boolean", "default": true }
+          }
+        },
+        "voiceEnabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "replayable": {
+          "type": "boolean",
+          "description": "Whether interactions can be replayed as part of a ritual or mirror",
+          "default": true
+        }
+      }
+    }
+  },
+  "required": ["id", "title", "type", "source", "layout", "nl"]
+}

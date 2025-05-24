@@ -1,0 +1,134 @@
+{
+  "$id": "https://sovereign-revelation.org/schema/nested-mirrors.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "NestedMirrorsDashboard",
+  "type": "object",
+  "properties": {
+    "dashboard": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string", "default": "Sovereign State Mirror" },
+        "description": { "type": "string" },
+        "theme": { "type": "string", "enum": ["light", "dark", "auto", "matrix", "neon"], "default": "dark" },
+        "refreshInterval": { "type": "number", "default": 5, "description": "Refresh interval in seconds" },
+        "panels": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/mirrorPanel" }
+        },
+        "bindings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "sourceId": { "type": "string" },
+              "targetId": { "type": "string" },
+              "event": { "type": "string", "description": "e.g. onClick, onDataUpdate" },
+              "action": { "type": "string", "description": "e.g. updateCode, refreshChart" }
+            },
+            "required": ["sourceId", "targetId", "event", "action"]
+          }
+        }
+      },
+      "required": ["id", "title", "panels"]
+    }
+  },
+  "required": ["dashboard"],
+  "definitions": {
+    "mirrorPanel": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "type": {
+          "type": "string",
+          "enum": ["state", "logic", "chart", "code", "console", "embed", "market", "agent", "schema", "logs", "mirror"]
+        },
+        "source": { "type": "string", "description": "Source path, node ID, URL, or schema reference" },
+        "content": { "type": "string", "description": "Dynamic content or evaluated output" },
+        "subPanels": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/mirrorPanel" }
+        },
+        "layout": {
+          "type": "object",
+          "properties": {
+            "x": { "type": "integer" },
+            "y": { "type": "integer" },
+            "w": { "type": "integer" },
+            "h": { "type": "integer" }
+          },
+          "required": ["x", "y", "w", "h"]
+        },
+        "api": {
+          "type": "object",
+          "properties": {
+            "method": { "type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"] },
+            "url": { "type": "string", "format": "uri", "description": "Full API endpoint to fetch or send data" },
+            "headers": { "type": "object", "additionalProperties": { "type": "string" } },
+            "body": { "type": "object", "description": "Optional payload for POST, PUT, PATCH" },
+            "responseMapping": { "type": "string", "description": "Optional JS path (e.g., 'data.metrics') to extract from response" },
+            "refreshOnMount": { "type": "boolean", "default": true },
+            "interval": { "type": "number", "description": "Auto-refresh in seconds" }
+          },
+          "required": ["method", "url"]
+        },
+        "code": {
+          "type": "object",
+          "properties": {
+            "language": { "type": "string", "enum": ["javascript", "python", "rust", "chisel", "verilog", "json", "yaml"] },
+            "source": { "type": "string" },
+            "editable": { "type": "boolean", "default": true },
+            "execute": { "type": "boolean", "default": false }
+          }
+        },
+        "chart": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "enum": ["line", "bar", "radar", "scatter", "doughnut"] },
+            "dataset": { "type": "array", "items": { "type": "object" } },
+            "labels": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "market": {
+          "type": "object",
+          "properties": {
+            "offers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "title": { "type": "string" },
+                  "description": { "type": "string" },
+                  "price": { "type": "number" },
+                  "currency": { "type": "string" }
+                },
+                "required": ["title", "price"]
+              }
+            },
+            "allowUserListings": { "type": "boolean", "default": true }
+          }
+        },
+        "stream": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "url": { "type": "string", "format": "uri" },
+            "eventMap": { "type": "object", "additionalProperties": { "type": "string" } }
+          }
+        },
+        "agentHooks": {
+          "type": "object",
+          "properties": {
+            "onMount": { "type": "string" },
+            "onUpdate": { "type": "string" },
+            "onError": { "type": "string" }
+          }
+        },
+        "editable": { "type": "boolean", "default": false },
+        "expanded": { "type": "boolean", "default": true }
+      },
+      "required": ["id", "title", "type", "source"]
+    }
+  }
+}

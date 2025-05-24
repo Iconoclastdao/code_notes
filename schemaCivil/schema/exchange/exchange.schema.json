@@ -1,0 +1,232 @@
+{
+  "$id": "https://sovereign-revelation.org/schema/exchange.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SovereignExchange",
+  "type": "object",
+  "description": "Comprehensive schema for a decentralized sovereign exchange supporting leveraged trading, liquidity pools, loans, advanced order types, risk management, compliance, and token integration.",
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]{1,50}$", "default": "sovereign-exchange" },
+    "title": { "type": "string", "minLength": 1, "maxLength": 100, "default": "Sovereign Exchange" },
+    "type": { "type": "string", "enum": ["exchange"], "default": "exchange" },
+    "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$", "default": "1.0.0" },
+    "layout": {
+      "type": "object",
+      "required": ["x", "y", "w", "h"],
+      "properties": {
+        "x": { "type": "integer", "minimum": 0 },
+        "y": { "type": "integer", "minimum": 0 },
+        "w": { "type": "integer", "minimum": 1 },
+        "h": { "type": "integer", "minimum": 1 },
+        "responsive": { "type": "boolean", "default": true },
+        "theme": { "type": "string", "enum": ["light", "dark", "custom"], "default": "light" }
+      }
+    },
+    "exchange": {
+      "type": "object",
+      "required": ["pairs", "orders", "positions", "liquidations", "pools", "loans", "safety", "users", "compliance", "tokens"],
+      "properties": {
+        "pairs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["base", "quote", "oracleFeed", "status"],
+            "properties": {
+              "base": { "type": "string", "pattern": "^[A-Z0-9]{1,10}$" },
+              "quote": { "type": "string", "pattern": "^[A-Z0-9]{1,10}$" },
+              "oracleFeed": { "type": "string", "format": "uri" },
+              "feeRate": { "type": "number", "minimum": 0, "maximum": 0.1, "default": 0.001 },
+              "maxLeverage": { "type": "number", "minimum": 1, "maximum": 100, "default": 10 },
+              "minTradeSize": { "type": "number", "minimum": 0, "default": 0.01 },
+              "tickSize": { "type": "number", "minimum": 0, "default": 0.01 },
+              "status": { "type": "string", "enum": ["active", "paused", "disabled"], "default": "active" },
+              "circuitBreaker": {
+                "type": "object",
+                "properties": {
+                  "enabled": { "type": "boolean", "default": false },
+                  "priceChangeThreshold": { "type": "number", "minimum": 0, "default": 0.1 },
+                  "haltDuration": { "type": "integer", "minimum": 0, "default": 300 }
+                }
+              },
+              "volume24h": { "type": "number", "minimum": 0, "default": 0 }
+            }
+          },
+          "minItems": 1
+        },
+        "orders": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "user", "pair", "side", "type", "size", "price", "timestamp"],
+            "properties": {
+              "id": { "type": "string", "format": "uuid" },
+              "user": { "type": "string", "format": "uuid" },
+              "pair": { "type": "string", "pattern": "^[A-Z0-9]{1,10}/[A-Z0-9]{1,10}$" },
+              "side": { "type": "string", "enum": ["buy", "sell"] },
+              "type": { "type": "string", "enum": ["limit", "market", "stop", "stop-limit", "trailing-stop"], "default": "limit" },
+              "size": { "type": "number", "minimum": 0.01 },
+              "price": { "type": "number", "minimum": 0 },
+              "leverage": { "type": "number", "minimum": 1, "maximum": 100, "default": 1 },
+              "timestamp": { "type": "string", "format": "date-time" },
+              "status": { "type": "string", "enum": ["open", "filled", "partially-filled", "cancelled", "liquidated", "expired"], "default": "open" },
+              "trailingDistance": { "type": "number", "minimum": 0 },
+              "stopPrice": { "type": "number", "minimum": 0 },
+              "timeInForce": { "type": "string", "enum": ["GTC", "IOC", "FOK"], "default": "GTC" },
+              "postOnly": { "type": "boolean", "default": false },
+              "fee": { "type": "number", "minimum": 0, "default": 0 }
+            }
+          }
+        },
+        "positions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["user", "pair", "size", "entryPrice", "leverage", "margin"],
+            "properties": {
+              "user": { "type": "string", "format": "uuid" },
+              "pair": { "type": "string", "pattern": "^[A-Z0-9]{1,10}/[A-Z0-9]{1,10}$" },
+              "size": { "type": "number", "minimum": 0.01 },
+              "entryPrice": { "type": "number", "minimum": 0 },
+              "leverage": { "type": "number", "minimum": 1, "maximum": 100 },
+              "margin": { "type": "number", "minimum": 0 },
+              "liquidationPrice": { "type": "number", "minimum": 0 },
+              "unrealizedPnL": { "type": "number" },
+              "fundingRate": { "type": "number", "minimum": 0 },
+              "openTimestamp": { "type": "string", "format": "date-time" },
+              "lastUpdated": { "type": "string", "format": "date-time" },
+              "collateralToken": { "type": "string", "pattern": "^[A-Z0-9]{1,10}$" }
+            }
+          }
+        },
+        "liquidations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["user", "pair", "timestamp", "liquidatedAt"],
+            "properties": {
+              "user": { "type": "string", "format": "uuid" },
+              "pair": { "type": "string", "pattern": "^[A-Z0-9]{1,10}/[A-Z0-9]{1,10}$" },
+              "liquidatedAt": { "type": "number", "minimum": 0 },
+              "timestamp": { "type": "string", "format": "date-time" },
+              "reason": { "type": "string", "enum": ["margin-call", "stop-loss", "circuit-breaker", "manual"] },
+              "lossAmount": { "type": "number", "minimum": 0 },
+              "liquidator": { "type": "string", "format": "uuid" }
+            }
+          }
+        },
+        "pools": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["token", "totalLiquidity", "status"],
+            "properties": {
+              "token": { "type": "string", "pattern": "^[A-Z0-9]{1,10}$" },
+              "totalLiquidity": { "type": "number", "minimum": 0 },
+              "providers": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["user", "amount"],
+                  "properties": {
+                    "user": { "type": "string", "format": "uuid" },
+                    "amount": { "type": "number", "minimum": 0 },
+                    "share": { "type": "number", "minimum": 0, "maximum": 1 },
+                    "joinTimestamp": { "type": "string", "format": "date-time" },
+                    "rewardsEarned": { "type": "number", "minimum": 0, "default": 0 }
+                  }
+                }
+              },
+              "rewardsRate": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.01 },
+              "status": { "type": "string", "enum": ["active", "paused", "locked"], "default": "active" },
+              "lockupPeriod": { "type": "integer", "minimum": 0 },
+              "swapFee": { "type": "number", "minimum": 0, "maximum": 0.1, "default": 0.003 }
+            }
+          }
+        },
+        "loans": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["borrower", "collateral", "amount", "rate", "dueDate"],
+            "properties": {
+              "borrower": { "type": "string", "format": "uuid" },
+              "collateral": { "type": "string", "pattern": "^[A-Z0-9]{1,10}$" },
+              "amount": { "type": "number", "minimum": 0.01 },
+              "rate": { "type": "number", "minimum": 0, "maximum": 1 },
+              "dueDate": { "type": "string", "format": "date-time" },
+              "status": { "type": "string", "enum": ["active", "repaid", "defaulted", "liquidated"], "default": "active" },
+              "collateralRatio": { "type": "number", "minimum": 1, "default": 1.5 },
+              "interestAccrued": { "type": "number", "minimum": 0 },
+              "lender": { "type": "string", "format": "uuid" },
+              "collateralAmount": { "type": "number", "minimum": 0 }
+            }
+          }
+        },
+        "safety": {
+          "type": "object",
+          "required": ["minCollateralRatio", "autoLiquidate"],
+          "properties": {
+            "minCollateralRatio": { "type": "number", "minimum": 1, "default": 1.5 },
+            "autoLiquidate": { "type": "boolean", "default": true },
+            "aiGuardianEnabled": { "type": "boolean", "default": false },
+            "guardianModel": { "type": "string" },
+            "maxPositionSize": { "type": "number", "minimum": 0 },
+            "volatilityThreshold": { "type": "number", "minimum": 0, "default": 0.2 },
+            "emergencyPause": { "type": "boolean", "default": false },
+            "maxOpenPositions": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "walletAddress", "status"],
+            "properties": {
+              "id": { "type": "string", "format": "uuid" },
+              "walletAddress": { "type": "string", "pattern": "^0x[a-fA-F0-9]{40}$" },
+              "status": { "type": "string", "enum": ["active", "suspended", "banned"], "default": "active" },
+              "kycLevel": { "type": "string", "enum": ["none", "basic", "full"], "default": "none" },
+              "lastLogin": { "type": "string", "format": "date-time" },
+              "riskScore": { "type": "number", "minimum": 0, "maximum": 100, "default": 0 },
+              "portfolioValue": { "type": "number", "minimum": 0 }
+            }
+          }
+        },
+        "compliance": {
+          "type": "object",
+          "properties": {
+            "kycRequired": { "type": "boolean", "default": false },
+            "amlChecks": { "type": "boolean", "default": false },
+            "restrictedJurisdictions": { "type": "array", "items": { "type": "string", "pattern": "^[A-Z]{2,3}$" } },
+            "maxTransactionLimit": { "type": "number", "minimum": 0 },
+            "auditLog": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "event": { "type": "string" },
+                  "timestamp": { "type": "string", "format": "date-time" },
+                  "user": { "type": "string", "format": "uuid" },
+                  "details": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "tokens": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["symbol", "contractAddress"],
+            "properties": {
+              "symbol": { "type": "string", "pattern": "^[A-Z0-9]{1,10}$" },
+              "contractAddress": { "type": "string", "pattern": "^0x[a-fA-F0-9]{40}$" },
+              "decimals": { "type": "integer", "minimum": 0, "maximum": 18, "default": 18 },
+              "status": { "type": "string", "enum": ["active", "suspended"], "default": "active" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "required": ["id", "title", "type", "layout", "exchange"]
+}

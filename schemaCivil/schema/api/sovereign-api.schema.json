@@ -1,0 +1,298 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sovereign-revelation.org/schema/dapp-system.api.schema.json",
+  "title": "Sovereign DApp System API",
+  "type": "object",
+  "description": "Comprehensive API schema for the Sovereign decentralized application system.",
+  "properties": {
+    "identity": {
+      "type": "object",
+      "description": "User identity and reputation management.",
+      "properties": {
+        "register": {
+          "type": "object",
+          "required": ["username", "publicKey"],
+          "properties": {
+            "username": { "type": "string" },
+            "publicKey": { "type": "string" }
+          }
+        },
+        "authenticate": {
+          "type": "object",
+          "required": ["username", "signature"],
+          "properties": {
+            "username": { "type": "string" },
+            "signature": { "type": "string" }
+          }
+        },
+        "updateProfile": {
+          "type": "object",
+          "required": ["username"],
+          "properties": {
+            "username": { "type": "string" },
+            "newPublicKey": { "type": "string" },
+            "metadata": { "type": "object" }
+          }
+        },
+        "reputation": {
+          "type": "object",
+          "properties": {
+            "score": { "type": "number" },
+            "history": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "oracle": {
+      "type": "object",
+      "description": "Oracle and validator module with mining, consensus, and rewards.",
+      "properties": {
+        "submitData": {
+          "type": "object",
+          "required": ["data", "signature"],
+          "properties": {
+            "data": { "type": "string" },
+            "signature": { "type": "string" }
+          }
+        },
+        "validateData": {
+          "type": "object",
+          "required": ["dataId", "validatorSignature"],
+          "properties": {
+            "dataId": { "type": "string" },
+            "validatorSignature": { "type": "string" }
+          }
+        },
+        "updateData": {
+          "type": "object",
+          "required": ["dataId", "newData", "signature"],
+          "properties": {
+            "dataId": { "type": "string" },
+            "newData": { "type": "string" },
+            "signature": { "type": "string" }
+          }
+        },
+        "consensus": {
+          "type": "object",
+          "properties": {
+            "status": { "type": "string", "enum": ["pending", "achieved", "failed"] },
+            "participants": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        },
+        "rewards": {
+          "type": "object",
+          "properties": {
+            "userId": { "type": "string" },
+            "amount": { "type": "number" }
+          }
+        }
+      }
+    },
+    "casino": {
+      "type": "object",
+      "description": "Casino module for games and betting.",
+      "properties": {
+        "createGame": {
+          "type": "object",
+          "required": ["gameType", "parameters"],
+          "properties": {
+            "gameType": { "type": "string" },
+            "parameters": { "type": "object" }
+          }
+        },
+        "placeBet": {
+          "type": "object",
+          "required": ["gameId", "amount"],
+          "properties": {
+            "gameId": { "type": "string" },
+            "amount": { "type": "number" }
+          }
+        },
+        "resolveGame": {
+          "type": "object",
+          "required": ["gameId"],
+          "properties": {
+            "gameId": { "type": "string" }
+          }
+        },
+        "updateGame": {
+          "type": "object",
+          "required": ["gameId"],
+          "properties": {
+            "gameId": { "type": "string" },
+            "newParameters": { "type": "object" }
+          }
+        }
+      }
+    },
+    "market": {
+      "type": "object",
+      "description": "Market module for trading and exchanges.",
+      "properties": {
+        "createOrder": {
+          "type": "object",
+          "required": ["asset", "quantity", "price", "orderType"],
+          "properties": {
+            "asset": { "type": "string" },
+            "quantity": { "type": "number" },
+            "price": { "type": "number" },
+            "orderType": { "type": "string", "enum": ["buy", "sell"] }
+          }
+        },
+        "cancelOrder": {
+          "type": "object",
+          "required": ["orderId"],
+          "properties": {
+            "orderId": { "type": "string" }
+          }
+        },
+        "executeTrade": {
+          "type": "object",
+          "required": ["buyOrderId", "sellOrderId"],
+          "properties": {
+            "buyOrderId": { "type": "string" },
+            "sellOrderId": { "type": "string" }
+          }
+        },
+        "updateOrder": {
+          "type": "object",
+          "required": ["orderId"],
+          "properties": {
+            "orderId": { "type": "string" },
+            "newQuantity": { "type": "number" },
+            "newPrice": { "type": "number" }
+          }
+        }
+      }
+    },
+    "feed": {
+      "type": "object",
+      "description": "Live sovereign feed for posts and updates.",
+      "properties": {
+        "post": {
+          "type": "object",
+          "required": ["author", "content"],
+          "properties": {
+            "author": { "type": "string" },
+            "content": { "type": "string" },
+            "timestamp": { "type": "string", "format": "date-time" }
+          }
+        },
+        "comment": {
+          "type": "object",
+          "required": ["postId", "author", "content"],
+          "properties": {
+            "postId": { "type": "string" },
+            "author": { "type": "string" },
+            "content": { "type": "string" },
+            "timestamp": { "type": "string", "format": "date-time" }
+          }
+        },
+        "react": {
+          "type": "object",
+          "required": ["postId", "userId", "reaction"],
+          "properties": {
+            "postId": { "type": "string" },
+            "userId": { "type": "string" },
+            "reaction": { "type": "string" }
+          }
+        },
+        "updatePost": {
+          "type": "object",
+          "required": ["postId", "content"],
+          "properties": {
+            "postId": { "type": "string" },
+            "content": { "type": "string" },
+            "timestamp": { "type": "string", "format": "date-time" }
+          }
+        }
+      }
+    },
+    "ritual": {
+      "type": "object",
+      "description": "Rituals and bonding mechanisms.",
+      "properties": {
+        "initiate": {
+          "type": "object",
+          "required": ["ritualType", "participants"],
+          "properties": {
+            "ritualType": { "type": "string" },
+            "participants": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        },
+        "complete": {
+          "type": "object",
+          "required": ["ritualId"],
+          "properties": {
+            "ritualId": { "type": "string" }
+          }
+        },
+        "status": {
+          "type": "object",
+          "required": ["ritualId"],
+          "properties": {
+            "ritualId": { "type": "string" },
+            "state": { "type": "string", "enum": ["pending", "active", "completed"] }
+          }
+        },
+        "updateStatus": {
+          "type": "object",
+          "required": ["ritualId", "newState"],
+          "properties": {
+            "ritualId": { "type": "string" },
+            "newState": { "type": "string", "enum": ["pending", "active", "completed"] }
+          }
+        }
+      }
+    },
+    "governance": {
+      "type": "object",
+      "description": "Governance and covenant framework.",
+      "properties": {
+        "propose": {
+          "type": "object",
+          "required": ["title", "description", "proposer"],
+          "properties": {
+            "title": { "type": "string" },
+            "description": { "type": "string" },
+            "proposer": { "type": "string" }
+          }
+        },
+        "vote": {
+          "type": "object",
+          "required": ["proposalId", "voter", "vote"],
+          "properties": {
+            "proposalId": { "type": "string" },
+            "voter": { "type": "string" },
+            "vote": { "type": "string", "enum": ["yes", "no", "abstain"] }
+          }
+        },
+        "execute": {
+          "type": "object",
+          "required": ["proposalId"],
+          "properties": {
+            "proposalId": { "type": "string" }
+          }
+        },
+        "updateProposal": {
+          "type": "object",
+          "required": ["proposalId", "description"],
+          "properties": {
+            "proposalId": { "type": "string" },
+            "description": { "type": "string" }
+          }
+        }
+      }
+    }
+  },
+  "required": ["identity", "oracle", "casino", "market", "feed", "ritual", "governance"]
+}

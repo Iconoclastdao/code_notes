@@ -1,0 +1,86 @@
+{
+  "$id": "https://sovereign-revelation.org/schema/financial.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SovereignFinancialSystem",
+  "type": "object",
+  "description": "Schema for treasury management, payment routing, bonding curves, and sovereign vaults.",
+  "properties": {
+    "id": { "type": "string" },
+    "title": { "type": "string" },
+    "type": { "type": "string", "enum": ["financial"], "default": "financial" },
+    "layout": {
+      "type": "object",
+      "required": ["x", "y", "w", "h"],
+      "properties": {
+        "x": { "type": "integer" },
+        "y": { "type": "integer" },
+        "w": { "type": "integer" },
+        "h": { "type": "integer" }
+      }
+    },
+    "financial": {
+      "type": "object",
+      "properties": {
+        "vaults": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "name", "token", "balance"],
+            "properties": {
+              "id": { "type": "string" },
+              "name": { "type": "string" },
+              "token": { "type": "string" },
+              "balance": { "type": "number" },
+              "policy": {
+                "type": "string",
+                "description": "Optional covenant or ritual ID governing withdrawals"
+              }
+            }
+          }
+        },
+        "paymentRoutes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["from", "to", "token", "amount"],
+            "properties": {
+              "from": { "type": "string" },
+              "to": { "type": "string" },
+              "token": { "type": "string" },
+              "amount": { "type": "number" },
+              "recurring": { "type": "boolean", "default": false },
+              "interval": {
+                "type": "string",
+                "enum": ["daily", "weekly", "monthly"],
+                "default": "monthly"
+              }
+            }
+          }
+        },
+        "bondingCurves": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "token", "curveType"],
+            "properties": {
+              "id": { "type": "string" },
+              "token": { "type": "string" },
+              "curveType": {
+                "type": "string",
+                "enum": ["linear", "logarithmic", "sigmoid"],
+                "default": "linear"
+              },
+              "params": {
+                "type": "object",
+                "description": "Curve-specific parameters",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      },
+      "required": ["vaults"]
+    }
+  },
+  "required": ["id", "title", "type", "layout", "financial"]
+}

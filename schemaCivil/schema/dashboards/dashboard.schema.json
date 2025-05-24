@@ -1,0 +1,170 @@
+{
+  "$id": "https://sovereign-revelation.org/schema/dashboard.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SovereignDashboard",
+  "type": "object",
+  "description": "Schema for a sovereign dashboard displaying ecosystem data (News, Social, Marketplace, Oracles, Gaming, DAO, Crowdfunding) with soulbound identity, on-chain reputation, and karma-based rewards.",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique dashboard ID, preferably a UUID or hash"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["dashboard"],
+      "default": "dashboard"
+    },
+    "owner": {
+      "type": "string",
+      "pattern": "^0x[a-fA-F0-9]{40}$",
+      "description": "Wallet address of the dashboard owner"
+    },
+    "soulboundId": {
+      "type": "string",
+      "description": "Non-transferable token ID for owner identity"
+    },
+    "title": {
+      "type": "string",
+      "description": "Display title of the dashboard"
+    },
+    "description": {
+      "type": "string",
+      "description": "Markdown or plaintext summary, optionally encrypted"
+    },
+    "layout": {
+      "type": "object",
+      "properties": {
+        "x": { "type": "integer", "minimum": 0 },
+        "y": { "type": "integer", "minimum": 0 },
+        "w": { "type": "integer", "minimum": 1 },
+        "h": { "type": "integer", "minimum": 1 }
+      },
+      "required": ["x", "y", "w", "h"]
+    },
+    "widgets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "dataSource"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique widget ID" },
+          "type": {
+            "type": "string",
+            "enum": [
+              "market-offers", "dating-profiles", "dating-matches", "node-entropy", "node-projects",
+              "reputation", "karma", "news-feed", "social-posts", "gaming-arena", "dao-proposals",
+              "crowdfunding-projects", "ad-revenue"
+            ],
+            "description": "Widget type for ecosystem data"
+          },
+          "dataSource": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["market", "dating", "node", "news", "social", "gaming", "dao", "crowdfunding", "chain"],
+                "description": "Source schema or chain"
+              },
+              "id": {
+                "type": "string",
+                "description": "ID of market, platform, node, or contract"
+              },
+              "query": {
+                "type": "string",
+                "description": "Optional query or filter (e.g., tags, status)"
+              }
+            },
+            "required": ["type", "id"]
+          },
+          "config": {
+            "type": "object",
+            "properties": {
+              "refreshInterval": { "type": "integer", "minimum": 0, "default": 60 },
+              "displayMode": {
+                "type": "string",
+                "enum": ["table", "chart", "list", "card"],
+                "default": "list"
+              },
+              "responsive": { "type": "boolean", "default": true }
+            }
+          },
+          "layout": {
+            "type": "object",
+            "properties": {
+              "x": { "type": "integer", "minimum": 0 },
+              "y": { "type": "integer", "minimum": 0 },
+              "w": { "type": "integer", "minimum": 1 },
+              "h": { "type": "integer", "minimum": 1 }
+            },
+            "required": ["x", "y", "w", "h"]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO timestamp of widget creation"
+          }
+        }
+      }
+    },
+    "karmaWage": {
+      "type": "object",
+      "description": "Rewards for dashboard activity",
+      "properties": {
+        "amount": { "type": "number", "minimum": 0 },
+        "currency": { "type": "string", "description": "E.g., COVENANT" },
+        "frequency": {
+          "type": "string",
+          "enum": ["daily", "weekly", "monthly"],
+          "default": "weekly"
+        }
+      },
+      "required": ["amount", "currency"]
+    },
+    "governance": {
+      "type": "object",
+      "description": "Decentralized governance for dashboard rules",
+      "properties": {
+        "votingContract": { "type": "string", "description": "Smart contract address" },
+        "proposalThreshold": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Minimum reputation for proposals"
+        },
+        "disputeResolution": {
+          "type": "string",
+          "enum": ["arbitration", "voting", "oracle"],
+          "default": "voting"
+        }
+      },
+      "required": ["votingContract", "disputeResolution"]
+    },
+    "chainConfig": {
+      "type": "object",
+      "description": "Multi-chain compatibility",
+      "properties": {
+        "chains": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["ethereum", "polkadot", "cosmos", "solana"] },
+          "minItems": 1
+        },
+        "bridgeContract": { "type": "string", "description": "Cross-chain bridge address" }
+      },
+      "required": ["chains"]
+    },
+    "transactionHooks": {
+      "type": "object",
+      "description": "Lifecycle hooks for dashboard actions",
+      "properties": {
+        "onWidgetAdd": { "type": "string", "description": "Hook for widget creation" },
+        "onDashboardShare": { "type": "string", "description": "Hook for dashboard sharing" },
+        "onProposalSubmit": { "type": "string", "description": "Hook for governance proposals" }
+      }
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO timestamp of dashboard creation"
+    }
+  },
+  "required": ["id", "type", "owner", "soulboundId", "title", "layout", "widgets", "governance", "chainConfig", "createdAt"]
+}

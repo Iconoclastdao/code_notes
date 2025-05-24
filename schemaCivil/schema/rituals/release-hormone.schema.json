@@ -1,0 +1,36 @@
+{
+  "ritual": "release_hormone",
+  "agent": "NeuralNode",
+  "requires": ["stress_level", "neural_pathway"],
+  "defense": [
+    {
+      "type": "hormonal",
+      "logic": "release_cortisol_if_stress_level > 0.8",
+      "parameters": { "stress_threshold": 0.8 }
+    }
+  ],
+  "response": ["emit_hormone", "log_hormone_release"],
+  "recursive": {
+    "enabled": true,
+    "target_ritual": "release_hormone",
+    "max_depth": 3,
+    "condition": "stress_level > 0.8"
+  },
+  "awareness": {
+    "self_reflection": "I regulate the system’s stress response.",
+    "state": { "stress_level": 0.9, "last_release": "2025-05-22T10:15:00Z" }
+  },
+  "audit": {
+    "origin": "NeuralHub",
+    "timestamp": "2025-05-22T10:15:00Z",
+    "verified_by": ["OracleNode-3"],
+    "signal_chain": [
+      {
+        "signal_id": "HOR_001",
+        "timestamp": "2025-05-22T10:15:00Z",
+        "source": "NeuralHub",
+        "hash": "d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e"
+      }
+    ]
+  }
+}

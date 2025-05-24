@@ -1,0 +1,146 @@
+{
+  "$id": "https://sovereign-revelation.org/schema/token.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SovereignToken",
+  "type": "object",
+  "description": "Comprehensive schema for a decentralized token/cryptocurrency system with transfers, staking, governance, and compliance.",
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]{1,50}$", "description": "Unique token system ID" },
+    "title": { "type": "string", "minLength": 1, "maxLength": 100, "default": "Sovereign Token" },
+    "type": { "type": "string", "enum": ["token"], "default": "token" },
+    "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$", "default": "1.0.0" },
+    "token": {
+      "type": "object",
+      "required": ["metadata", "balances", "transfers", "staking", "governance", "compliance"],
+      "properties": {
+        "metadata": {
+          "type": "object",
+          "required": ["name", "symbol", "decimals", "totalSupply", "contractAddress"],
+          "properties": {
+            "name": { "type": "string", "minLength": 1, "maxLength": 50 },
+            "symbol": { "type": "string", "pattern": "^[A-Z0-9]{1,10}$" },
+            "decimals": { "type": "integer", "minimum": 0, "maximum": 18, "default": 18 },
+            "totalSupply": { "type": "number", "minimum": 0 },
+            "contractAddress": { "type": "string", "pattern": "^0x[a-fA-F0-9]{40}$" },
+            "standard": { "type": "string", "enum": ["ERC20", "ERC721", "ERC1155"], "default": "ERC20" },
+            "createdAt": { "type": "string", "format": "date-time" }
+          }
+        },
+        "balances": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["user", "amount"],
+            "properties": {
+              "user": { "type": "string", "format": "uuid" },
+              "amount": { "type": "number", "minimum": 0 },
+              "lockedAmount": { "type": "number", "minimum": 0, "default": 0 },
+              "lastUpdated": { "type": "string", "format": "date-time" }
+            }
+          }
+        },
+        "transfers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "from", "to", "amount", "timestamp"],
+            "properties": {
+              "id": { "type": "string", "format": "uuid" },
+              "from": { "type": "string", "format": "uuid" },
+              "to": { "type": "string", "format": "uuid" },
+              "amount": { "type": "number", "minimum": 0.000000000000000001 },
+              "timestamp": { "type": "string", "format": "date-time" },
+              "status": { "type": "string", "enum": ["pending", "completed", "failed"], "default": "pending" },
+              "txHash": { "type": "string", "pattern": "^0x[a-fA-F0-9]{64}$" }
+            }
+          }
+        },
+        "staking": {
+          "type": "object",
+          "properties": {
+            "pools": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["id", "totalStaked", "rewardRate"],
+                "properties": {
+                  "id": { "type": "string", "format": "uuid" },
+                  "totalStaked": { "type": "number", "minimum": 0 },
+                  "rewardRate": { "type": "number", "minimum": 0, "default": 0.05 },
+                  "lockupPeriod": { "type": "integer", "minimum": 0, "description": "Lockup period in seconds" },
+                  "stakers": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "user": { "type": "string", "format": "uuid" },
+                        "amount": { "type": "number", "minimum": 0 },
+                        "stakedAt": { "type": "string", "format": "date-time" },
+                        "rewardsEarned": { "type": "number", "minimum": 0, "default": 0 }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "enabled": { "type": "boolean", "default": true }
+          }
+        },
+        "governance": {
+          "type": "object",
+          "properties": {
+            "proposals": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["id", "creator", "description", "status"],
+                "properties": {
+                  "id": { "type": "string", "format": "uuid" },
+                  "creator": { "type": "string", "format": "uuid" },
+                  "description": { "type": "string", "minLength": 1 },
+                  "status": { "type": "string", "enum": ["proposed", "active", "passed", "rejected"], "default": "proposed" },
+                  "votes": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "user": { "type": "string", "format": "uuid" },
+                        "vote": { "type": "string", "enum": ["yes", "no", "abstain"] },
+                        "weight": { "type": "number", "minimum": 0 }
+                      }
+                    }
+                  },
+                  "createdAt": { "type": "string", "format": "date-time" },
+                  "endTime": { "type": "string", "format": "date-time" }
+                }
+              }
+            },
+            "minVotingPower": { "type": "number", "minimum": 0, "default": 100 },
+            "votingPeriod": { "type": "integer", "minimum": 0, "default": 604800 }
+          }
+        },
+        "compliance": {
+          "type": "object",
+          "properties": {
+            "kycRequired": { "type": "boolean", "default": false },
+            "maxTransferLimit": { "type": "number", "minimum": 0, "description": "Maximum transfer amount per transaction" },
+            "restrictedJurisdictions": { "type": "array", "items": { "type": "string", "pattern": "^[A-Z]{2,3}$" } },
+            "auditLog": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "event": { "type": "string" },
+                  "user": { "type": "string", "format": "uuid" },
+                  "timestamp": { "type": "string", "format": "date-time" },
+                  "details": { "type": "string" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "required": ["id", "title", "type", "token"]
+}

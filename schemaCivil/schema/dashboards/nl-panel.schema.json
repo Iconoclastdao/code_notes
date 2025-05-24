@@ -1,0 +1,27 @@
+{
+  "id": "nl-agent",
+  "title": "Sovereign Oracle Chat",
+  "type": "nl",
+  "source": "models/nl/sovereign-gpt.json",
+  "layout": {
+    "x": 0,
+    "y": 9,
+    "w": 12,
+    "h": 4
+  },
+  "nl": {
+    "mode": "chat",
+    "model": "gpt-4",
+    "bindingTarget": "agent-logic-core",
+    "mapIntent": {
+      "show market": "navigate('sovereign-market')",
+      "run code": "execute('code-sandbox')",
+      "status": "query('agent-logic-core.state')"
+    },
+    "language": "en",
+    "history": true,
+    "contextWindow": 1500,
+    "confidenceThreshold": 0.75,
+    "fallbackAction": "console.log('Unrecognized input. Please clarify.')"
+  }
+}

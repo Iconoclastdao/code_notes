@@ -1,0 +1,138 @@
+{
+  "$id": "https://sovereign-revelation.org/schema/oracle-consensus.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Sovereign Oracle & Consensus System",
+  "type": "object",
+  "description": "Schema for decentralized oracle, consensus, validator mining, and reward attribution logic.",
+  "properties": {
+    "id": {
+      "type": "string",
+      "default": "oracle-consensus"
+    },
+    "title": {
+      "type": "string",
+      "default": "Oracle & Consensus System"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["oracle-consensus"],
+      "default": "oracle-consensus"
+    },
+    "layout": {
+      "type": "object",
+      "required": ["x", "y", "w", "h"],
+      "properties": {
+        "x": { "type": "integer" },
+        "y": { "type": "integer" },
+        "w": { "type": "integer" },
+        "h": { "type": "integer" }
+      }
+    },
+    "oracle": {
+      "type": "object",
+      "required": ["feeds", "submissionPolicy", "rewardModel"],
+      "properties": {
+        "feeds": {
+          "type": "array",
+          "description": "List of data feeds (prices, events, weather, external APIs)",
+          "items": {
+            "type": "object",
+            "required": ["id", "type", "source", "updateInterval"],
+            "properties": {
+              "id": { "type": "string" },
+              "type": { "type": "string", "enum": ["price", "event", "weather", "api", "custom"] },
+              "source": { "type": "string", "description": "URL or data source identifier" },
+              "updateInterval": { "type": "integer", "description": "Seconds between submissions" },
+              "dataSchema": { "type": "object", "description": "Expected format of submitted data", "additionalProperties": true }
+            }
+          }
+        },
+        "submissionPolicy": {
+          "type": "object",
+          "properties": {
+            "minValidators": { "type": "integer", "default": 3 },
+            "quorumPercent": { "type": "number", "minimum": 0.5, "maximum": 1.0, "default": 0.66 },
+            "slashingEnabled": { "type": "boolean", "default": true },
+            "slashingPenalty": { "type": "number", "default": 0.1 }
+          }
+        },
+        "rewardModel": {
+          "type": "object",
+          "required": ["perSubmission", "bonusForAccuracy", "penaltyForMalice"],
+          "properties": {
+            "perSubmission": { "type": "number", "description": "Tokens per valid submission" },
+            "bonusForAccuracy": { "type": "number", "description": "Extra reward for close-to-mean data" },
+            "penaltyForMalice": { "type": "number", "description": "Penalty for outlier or false data" }
+          }
+        }
+      }
+    },
+    "validators": {
+      "type": "array",
+      "description": "List of validators in the consensus system",
+      "items": {
+        "type": "object",
+        "required": ["id", "stake", "uptime", "accuracyScore"],
+        "properties": {
+          "id": { "type": "string" },
+          "stake": { "type": "number", "description": "Staked tokens as collateral" },
+          "uptime": { "type": "number", "description": "Uptime percentage over last epoch" },
+          "accuracyScore": { "type": "number", "description": "Quality of previous data submissions" },
+          "active": { "type": "boolean", "default": true }
+        }
+      }
+    },
+    "consensus": {
+      "type": "object",
+      "required": ["mechanism", "threshold", "roundDuration"],
+      "properties": {
+        "mechanism": {
+          "type": "string",
+          "enum": ["PoS", "DPoS", "fPoS", "PoA", "Hybrid"],
+          "default": "PoS",
+          "description": "Consensus model"
+        },
+        "threshold": {
+          "type": "number",
+          "description": "Minimum percent agreement required for consensus (e.g., 0.67)",
+          "minimum": 0.5,
+          "maximum": 1.0
+        },
+        "roundDuration": {
+          "type": "integer",
+          "description": "Duration of consensus round in seconds"
+        },
+        "challengeWindow": {
+          "type": "integer",
+          "description": "Time in seconds during which submissions may be disputed",
+          "default": 120
+        }
+      }
+    },
+    "mining": {
+      "type": "object",
+      "required": ["enabled", "difficulty", "rewardPerBlock"],
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "difficulty": { "type": "number", "minimum": 0, "description": "Base mining difficulty" },
+        "rewardPerBlock": { "type": "number", "description": "Token reward per mined block" },
+        "proofMechanism": {
+          "type": "string",
+          "enum": ["ProofOfWork", "ProofOfContribution", "ProofOfAccuracy"],
+          "default": "ProofOfContribution"
+        }
+      }
+    },
+    "users": {
+      "type": "object",
+      "description": "User participation layer",
+      "properties": {
+        "submitOracleData": { "type": "boolean", "default": true },
+        "runValidator": { "type": "boolean", "default": false },
+        "contributeCompute": { "type": "boolean", "default": false },
+        "rewardBalance": { "type": "number", "default": 0 }
+      }
+    }
+  },
+  "required": ["id", "title", "type", "layout", "oracle", "validators", "consensus", "mining", "users"]
+}

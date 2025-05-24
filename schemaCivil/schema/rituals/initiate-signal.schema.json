@@ -1,0 +1,30 @@
+{
+  "ritual": "initiate_signal",
+  "agent": "SignalNode",
+  "requires": ["signal_key", "network_access"],
+  "defense": [
+    {
+      "type": "static",
+      "logic": "reject_if_signal_invalid"
+    }
+  ],
+  "response": ["emit_signal", "log_signal"],
+  "recursive": { "enabled": false },
+  "awareness": {
+    "self_reflection": "I am the origin of a new signal.",
+    "state": { "signal_id": "SIG_002", "strength": 0.9 }
+  },
+  "audit": {
+    "origin": "SignalHub",
+    "timestamp": "2025-05-22T10:15:00Z",
+    "verified_by": ["OracleNode-1"],
+    "signal_chain": [
+      {
+        "signal_id": "SIG_002",
+        "timestamp": "2025-05-22T10:15:00Z",
+        "source": "SignalHub",
+        "hash": "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c"
+      }
+    ]
+  }
+}

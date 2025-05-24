@@ -1,0 +1,310 @@
+{
+  "$id": "https://sovereign-revelation.org/schema/politics.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SovereignPolitics",
+  "type": "object",
+  "description": "Schema for decentralized political engagement with petitions, proposals, voting, and disputes for digital and material world governance.",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique politics platform ID, preferably a UUID or hash"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["politics"],
+      "default": "politics"
+    },
+    "title": {
+      "type": "string",
+      "description": "Display title of the political platform"
+    },
+    "description": {
+      "type": "string",
+      "description": "Markdown or plaintext summary, optionally encrypted"
+    },
+    "jurisdiction": {
+      "type": "object",
+      "description": "Governance scope (digital or material world)",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["digital", "material"],
+          "description": "Digital (DAO, chain) or material (city, state, country)"
+        },
+        "details": {
+          "type": "object",
+          "properties": {
+            "chain": {
+              "type": "string",
+              "enum": ["ethereum", "polkadot", "cosmos", "solana"],
+              "description": "Blockchain for digital jurisdiction"
+            },
+            "daoId": {
+              "type": "string",
+              "description": "DAO ID for digital jurisdiction"
+            },
+            "location": {
+              "type": "string",
+              "description": "Geographic location for material jurisdiction (e.g., 'Austin, TX, USA')"
+            }
+          },
+          "required": ["chain", "daoId"],
+          "if": { "properties": { "type": { "const": "material" } } },
+          "then": { "required": ["location"] }
+        }
+      },
+      "required": ["type", "details"]
+    },
+    "platform": {
+      "type": "object",
+      "properties": {
+        "petitions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "creator", "soulboundId", "title", "actionType"],
+            "properties": {
+              "id": { "type": "string", "description": "Unique petition ID" },
+              "creator": { "type": "string", "description": "Wallet address of creator" },
+              "soulboundId": { "type": "string", "description": "Non-transferable token ID" },
+              "title": { "type": "string", "description": "Petition title" },
+              "description": {
+                "type": "object",
+                "properties": {
+                  "encryptionType": {
+                    "type": "string",
+                    "enum": ["none", "aes-256", "ecdsa"],
+                    "default": "none"
+                  },
+                  "data": {
+                    "type": ["string", "object"],
+                    "description": "Encrypted or plaintext petition details"
+                  }
+                },
+                "required": ["encryptionType", "data"]
+              },
+              "actionType": {
+                "type": "string",
+                "enum": ["on-chain", "off-chain"],
+                "description": "Action type (smart contract or real-world)"
+              },
+              "actionDetails": {
+                "type": "object",
+                "properties": {
+                  "contractAddress": { "type": "string", "description": "Smart contract for on-chain action" },
+                  "method": { "type": "string", "description": "Contract method to execute" },
+                  "realWorldCommitment": {
+                    "type": "string",
+                    "description": "Description of material world action (e.g., 'policy change')"
+                  }
+                },
+                "required": ["contractAddress", "method"],
+                "if": { "properties": { "actionType": { "const": "off-chain" } } },
+                "then": { "required": ["realWorldCommitment"] }
+              },
+              "signatures": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "agent": { "type": "string", "description": "Wallet address of signer" },
+                    "soulboundId": { "type": "string", "description": "Signer’s soulbound ID" },
+                    "timestamp": { "type": "string", "format": "date-time" }
+                  },
+                  "required": ["agent", "soulboundId", "timestamp"]
+                }
+              },
+              "threshold": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Signature threshold to escalate to proposal"
+              },
+              "status": {
+                "type": "string",
+                "enum": ["open", "escalated", "closed"],
+                "default": "open"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO timestamp of petition creation"
+              },
+              "expiry": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO timestamp for petition expiration"
+              }
+            }
+          }
+        },
+        "proposals": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "creator", "soulboundId", "title", "actionType"],
+            "properties": {
+              "id": { "type": "string", "description": "Unique proposal ID" },
+              "creator": { "type": "string", "description": "Wallet address of proposer" },
+              "soulboundId": { "type": "string", "description": "Non-transferable token ID" },
+              "title": { "type": "string", "description": "Proposal title" },
+              "description": {
+                "type": "object",
+                "properties": {
+                  "encryptionType": {
+                    "type": "string",
+                    "enum": ["none", "aes-256", "ecdsa"],
+                    "default": "none"
+                  },
+                  "data": {
+                    "type": ["string", "object"],
+                    "description": "Encrypted or plaintext proposal details"
+                  }
+                },
+                "required": ["encryptionType", "data"]
+              },
+              "actionType": {
+                "type": "string",
+                "enum": ["on-chain", "off-chain"],
+                "description": "Action type (smart contract or real-world)"
+              },
+              "actionDetails": {
+                "type": "object",
+                "properties": {
+                  "contractAddress": { "type": "string", "description": "Smart contract for on-chain action" },
+                  "method": { "type": "string", "description": "Contract method to execute" },
+                  "realWorldCommitment": {
+                    "type": "string",
+                    "description": "Description of material world action"
+                  }
+                },
+                "required": ["contractAddress", "method"],
+                "if": { "properties": { "actionType": { "const": "off-chain" } } },
+                "then": { "required": ["realWorldCommitment"] }
+              },
+              "votes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "agent": { "type": "string", "description": "Wallet address of voter" },
+                    "soulboundId": { "type": "string", "description": "Voter’s soulbound ID" },
+                    "vote": { "type": "string", "enum": ["yes", "no", "abstain"] },
+                    "timestamp": { "type": "string", "format": "date-time" }
+                  },
+                  "required": ["agent", "soulboundId", "vote", "timestamp"]
+                }
+              },
+              "status": {
+                "type": "string",
+                "enum": ["pending", "approved", "rejected", "executed"],
+                "default": "pending"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO timestamp of proposal creation"
+              },
+              "expiry": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO timestamp for voting period end"
+              }
+            }
+          }
+        },
+        "disputes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "creator", "soulboundId", "target", "reason"],
+            "properties": {
+              "id": { "type": "string", "description": "Unique dispute ID" },
+              "creator": { "type": "string", "description": "Wallet address of dispute initiator" },
+              "soulboundId": { "type": "string", "description": "Non-transferable token ID" },
+              "target": { "type": "string", "description": "Target agent or petition/proposal ID" },
+              "reason": { "type": "string", "description": "Dispute reason" },
+              "status": {
+                "type": "string",
+                "enum": ["open", "resolved", "dismissed"],
+                "default": "open"
+              },
+              "resolution": {
+                "type": "object",
+                "properties": {
+                  "method": {
+                    "type": "string",
+                    "enum": ["voting", "arbitration", "oracle"],
+                    "description": "Resolution method"
+                  },
+                  "outcome": { "type": "string", "description": "Resolution details" }
+                }
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO timestamp of dispute creation"
+              }
+            }
+          }
+        },
+        "karmaWage": {
+          "type": "object",
+          "description": "Rewards for political activity",
+          "properties": {
+            "amount": { "type": "number", "minimum": 0 },
+            "currency": { "type": "string", "description": "E.g., COVENANT" },
+            "frequency": {
+              "type": "string",
+              "enum": ["daily", "weekly", "monthly"],
+              "default": "weekly"
+            }
+          },
+          "required": ["amount", "currency"]
+        },
+        "governance": {
+          "type": "object",
+          "description": "Decentralized governance for platform",
+          "properties": {
+            "votingContract": { "type": "string", "description": "Smart contract address" },
+            "proposalThreshold": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Minimum reputation for proposals"
+            },
+            "disputeResolution": {
+              "type": "string",
+              "enum": ["arbitration", "voting", "oracle"],
+              "default": "voting"
+            }
+          },
+          "required": ["votingContract", "disputeResolution"]
+        },
+        "chainConfig": {
+          "type": "object",
+          "description": "Multi-chain compatibility",
+          "properties": {
+            "chains": {
+              "type": "array",
+              "items": { "type": "string", "enum": ["ethereum", "polkadot", "cosmos", "solana"] },
+              "minItems": 1
+            },
+            "bridgeContract": { "type": "string", "description": "Cross-chain bridge address" }
+          },
+          "required": ["chains"]
+        },
+        "transactionHooks": {
+          "type": "object",
+          "description": "Lifecycle hooks for political actions",
+          "properties": {
+            "onPetitionCreate": { "type": "string", "description": "Hook for petition creation" },
+            "onProposalSubmit": { "type": "string", "description": "Hook for proposal submission" },
+            "onVote": { "type": "string", "description": "Hook for voting" },
+            "onDispute": { "type": "string", "description": "Hook for dispute resolution" }
+          }
+        }
+      },
+      "required": ["petitions", "proposals", "disputes", "governance", "chainConfig"]
+    }
+  },
+  "required": ["id", "type", "title", "jurisdiction", "platform"]
+}

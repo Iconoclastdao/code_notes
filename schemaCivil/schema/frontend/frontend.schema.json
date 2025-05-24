@@ -1,0 +1,140 @@
+{
+  "$id": "https://sovereign-revelation.org/schema/frontend.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SovereignFrontend",
+  "description": "Schema defining the dynamic frontend layout, panels, components, and bindings across the sovereign app.",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string", "default": "sovereign-frontend" },
+    "version": { "type": "string", "default": "1.0.0" },
+    "theme": {
+      "type": "string",
+      "enum": ["light", "dark", "cyberpunk", "sovereign", "adaptive"],
+      "default": "sovereign"
+    },
+    "branding": {
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "default": "Sovereign System" },
+        "logoUrl": { "type": "string" },
+        "favicon": { "type": "string" },
+        "splashScreen": { "type": "string" }
+      }
+    },
+    "layoutEngine": {
+      "type": "string",
+      "enum": ["grid", "flex", "flow", "stack"],
+      "default": "grid"
+    },
+    "navigation": {
+      "type": "array",
+      "description": "Main UI routes and tabs",
+      "items": {
+        "type": "object",
+        "required": ["path", "label"],
+        "properties": {
+          "path": { "type": "string" },
+          "label": { "type": "string" },
+          "icon": { "type": "string" },
+          "componentId": { "type": "string" },
+          "permissions": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "components": {
+      "type": "array",
+      "description": "UI components (widgets, panels, tools)",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "position"],
+        "properties": {
+          "id": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": [
+              "panel", "chart", "form", "editor", "console",
+              "feed", "video", "modal", "tab", "sidebar",
+              "card", "table", "timeline", "network"
+            ]
+          },
+          "position": {
+            "type": "object",
+            "required": ["x", "y", "w", "h"],
+            "properties": {
+              "x": { "type": "integer" },
+              "y": { "type": "integer" },
+              "w": { "type": "integer" },
+              "h": { "type": "integer" }
+            }
+          },
+          "dataSource": {
+            "type": "string",
+            "description": "Bound API or schema ID"
+          },
+          "props": {
+            "type": "object",
+            "description": "Custom UI properties and state overrides"
+          },
+          "events": {
+            "type": "object",
+            "description": "Event-action mapping (onClick, onSubmit)",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "bindings": {
+            "type": "object",
+            "description": "Reactive data bindings",
+            "properties": {
+              "inputs": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "outputs": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "state": {
+      "type": "object",
+      "description": "Frontend state containers",
+      "properties": {
+        "global": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "user": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string" },
+            "wallet": { "type": "string" },
+            "role": { "type": "string" },
+            "permissions": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "i18n": {
+      "type": "object",
+      "description": "Internationalization",
+      "properties": {
+        "defaultLanguage": { "type": "string", "default": "en" },
+        "languages": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  },
+  "required": ["id", "layoutEngine", "components"]
+}

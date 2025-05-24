@@ -1,0 +1,146 @@
+{
+  "$schema": "https://sovereign-revelation.org/schema/nested-mirrors.schema.json",
+  "dashboard": {
+    "id": "sovereign-mirror-main",
+    "title": "Sovereign State Mirror",
+    "description": "Nested dashboard for sovereign computation, agent simulation, market, and live code execution.",
+    "theme": "neon",
+    "refreshInterval": 10,
+    "panels": [
+      {
+        "id": "agent-logic-core",
+        "title": "Agent: Logic Kernel",
+        "type": "agent",
+        "source": "agents/core.logic.json",
+        "layout": { "x": 0, "y": 0, "w": 6, "h": 4 },
+        "expanded": true,
+        "agentHooks": {
+          "onMount": "initializeAgent",
+          "onUpdate": "updateAgentState",
+          "onError": "logError"
+        },
+        "stream": {
+          "enabled": true,
+          "url": "wss://sovereign-revelation.org/stream/agent",
+          "eventMap": { "stateUpdate": "updateAgentData" }
+        }
+      },
+      {
+        "id": "live-chart",
+        "title": "Entropy Chart",
+        "type": "chart",
+        "source": "api/entropy-stats",
+        "chart": {
+          "type": "line",
+          "labels": ["0s", "5s", "10s", "15s"],
+          "dataset": [
+            { "label": "Signal Strength", "data": [0.5, 0.7, 0.8, 0.95] }
+          ]
+        },
+        "layout": { "x": 6, "y": 0, "w": 6, "h": 4 },
+        "api": {
+          "method": "GET",
+          "url": "https://sovereign-revelation.org/api/entropy",
+          "headers": { "Authorization": "Bearer token" },
+          "responseMapping": "data.metrics",
+          "refreshOnMount": true,
+          "interval": 5
+        }
+      },
+      {
+        "id": "code-sandbox",
+        "title": "Live Code Editor",
+        "type": "code",
+        "source": "print('👁️ Hello Sovereign')",
+        "code": {
+          "language": "python",
+          "editable": true,
+          "execute": true
+        },
+        "layout": { "x": 0, "y": 4, "w": 6, "h": 5 },
+        "stream": {
+          "enabled": false,
+          "url": "wss://sovereign-revelation.org/stream/code",
+          "eventMap": { "output": "displayResult" }
+        }
+      },
+      {
+        "id": "sovereign-market",
+        "title": "Decentralized Market",
+        "type": "market",
+        "source": "api/market",
+        "market": {
+          "offers": [
+            {
+              "title": "AI Oracle Session",
+              "description": "15 minutes with an autonomous oracle agent.",
+              "price": 5,
+              "currency": "SOL"
+            },
+            {
+              "title": "CRISPR Logic Builder NFT",
+              "description": "1-of-1 sovereign logic builder.",
+              "price": 88,
+              "currency": "DAI"
+            }
+          ],
+          "allowUserListings": true
+        },
+        "layout": { "x": 6, "y": 4, "w": 6, "h": 5 },
+        "api": {
+          "method": "GET",
+          "url": "https://sovereign-revelation.org/api/market",
+          "refreshOnMount": true,
+          "interval": 30
+        }
+      },
+      {
+        "id": "nl-agent",
+        "title": "Sovereign Oracle Chat",
+        "type": "nl",
+        "source": "models/nl/sovereign-gpt.json",
+        "layout": {
+          "x": 0,
+          "y": 9,
+          "w": 12,
+          "h": 4
+        },
+        "nl": {
+          "mode": "chat",
+          "model": "gpt-4",
+          "bindingTarget": "agent-logic-core",
+          "mapIntent": {
+            "show market": "navigate('sovereign-market')",
+            "run code": "execute('code-sandbox')",
+            "status": "query('agent-logic-core.state')"
+          },
+          "language": "en",
+          "history": true,
+          "contextWindow": 1500,
+          "confidenceThreshold": 0.75,
+          "fallbackAction": "console.log('Unrecognized input. Please clarify.')"
+        }
+      }
+    ],
+    "bindings": [
+      {
+        "sourceId": "code-sandbox",
+        "targetId": "live-chart",
+        "event": "onExecute",
+        "action": "refreshChart"
+      },
+      {
+        "sourceId": "agent-logic-core",
+        "targetId": "sovereign-market",
+        "event": "onDataUpdate",
+        "action": "updateMarketOffers"
+      },
+      {
+        "sourceId": "nl-agent",
+        "targetId": "agent-logic-core",
+        "event": "onIntent",
+        "action": "processIntent"
+      }
+    ]
+  }
+}

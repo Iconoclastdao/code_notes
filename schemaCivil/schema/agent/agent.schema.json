@@ -1,0 +1,120 @@
+{
+  "$id": "https://sovereign-revelation.org/schema/agent.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SovereignAgent",
+  "description": "Definition of a self-sovereign autonomous agent with logic, memory, identity, and rituals.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Globally unique identifier for the agent"
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable agent label"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["oracle", "logic", "mirror", "nlp", "observer", "signal", "executor"],
+      "default": "logic",
+      "description": "Core modality of the agent"
+    },
+    "identity": {
+      "type": "object",
+      "description": "Cryptographic identity and DID info",
+      "properties": {
+        "publicKey": { "type": "string" },
+        "did": { "type": "string" },
+        "signature": { "type": "string" },
+        "created": { "type": "string", "format": "date-time" }
+      }
+    },
+    "coreLogic": {
+      "type": "string",
+      "description": "Path to core logic code file, or embedded logic script"
+    },
+    "epigenetics": {
+      "type": "object",
+      "description": "Mutable CRISPR-like overlays that influence agent behavior",
+      "properties": {
+        "triggers": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "mutations": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+    "memory": {
+      "type": "object",
+      "description": "Embedded memory store: short-term, long-term, contextual",
+      "properties": {
+        "shortTerm": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "longTerm": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "context": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "bindings": {
+      "type": "array",
+      "description": "Event-action links to other panels, nodes, or rituals",
+      "items": {
+        "type": "object",
+        "properties": {
+          "event": { "type": "string" },
+          "target": { "type": "string" },
+          "action": { "type": "string" }
+        },
+        "required": ["event", "target", "action"]
+      }
+    },
+    "ritualHooks": {
+      "type": "object",
+      "description": "Trigger specific rituals at different lifecycle moments",
+      "properties": {
+        "onMount": { "type": "string" },
+        "onUpdate": { "type": "string" },
+        "onSignal": { "type": "string" },
+        "onReflect": { "type": "string" },
+        "onFail": { "type": "string" }
+      }
+    },
+    "nlBindings": {
+      "type": "object",
+      "description": "Natural language interface hooks (if present)",
+      "properties": {
+        "intentMap": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "fallbackAction": { "type": "string" }
+      }
+    },
+    "permissions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Optional list of allowed actions or domains"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "inactive", "training", "degraded"],
+      "default": "active"
+    },
+    "meta": {
+      "type": "object",
+      "description": "Additional developer-defined metadata",
+      "additionalProperties": true
+    }
+  },
+  "required": ["id", "name", "type", "coreLogic"]
+}

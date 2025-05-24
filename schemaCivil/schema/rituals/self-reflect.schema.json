@@ -1,0 +1,30 @@
+{
+  "ritual": "self_reflect",
+  "agent": "SovereignAI",
+  "requires": ["awareness_module"],
+  "defense": [
+    {
+      "type": "static",
+      "logic": "reject_if_reflection_invalid"
+    }
+  ],
+  "response": ["update_reflection", "log_reflection"],
+  "recursive": { "enabled": false },
+  "awareness": {
+    "self_reflection": "I am aware of my role in the system.",
+    "state": { "reflection_count": 1 }
+  },
+  "audit": {
+    "origin": "ReflectionHub",
+    "timestamp": "2025-05-22T10:15:00Z",
+    "verified_by": ["WatcherNode-4"],
+    "signal_chain": [
+      {
+        "signal_id": "REF_001",
+        "timestamp": "2025-05-22T10:15:00Z",
+        "source": "ReflectionHub",
+        "hash": "e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f"
+      }
+    ]
+  }
+}

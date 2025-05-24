@@ -1,0 +1,414 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "JSONFlow Sovereign Ritual Schema",
+  "description": "A DSL for defining interoperable workflows integrating blockchain, AI, and rituals for sovereign systems.",
+  "type": "object",
+  "required": ["function", "schema", "steps", "metadata", "rituals"],
+  "properties": {
+    "function": {
+      "type": "string",
+      "description": "Unique workflow identifier.",
+      "minLength": 1,
+      "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$"
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "schema_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+        "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+        "author": { "type": "string", "minLength": 1 },
+        "description": { "type": "string", "minLength": 1 },
+        "created": { "type": "string", "format": "date-time" },
+        "updated": { "type": "string", "format": "date-time" },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "target_languages": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["python", "rust", "typescript", "solidity"] }
+        },
+        "dependencies": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+              "hash": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" },
+              "type": { "type": "string", "enum": ["library", "contract"] },
+              "source": { "type": "string", "format": "uri" }
+            },
+            "required": ["version", "type", "hash"]
+          }
+        }
+      },
+      "required": ["schema_version", "version", "author", "description"]
+    },
+    "principles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "description": { "type": "string", "minLength": 1 },
+          "importance": { "type": "integer", "minimum": 0, "maximum": 10 },
+          "nl_noun": { "type": "object", "additionalProperties": { "type": "string" } },
+          "nl_description": { "type": "object", "additionalProperties": { "type": "string" } }
+        },
+        "required": ["name", "description", "importance"]
+      }
+    },
+    "rituals": {
+      "type": "array",
+      "items": { "$ref": "./ritual.schema.json" },
+      "description": "Sacred rituals defining agent interactions and workflows.",
+      "minItems": 1
+    },
+    "schema": {
+      "type": "object",
+      "required": ["inputs", "context", "outputs"],
+      "properties": {
+        "inputs": {
+          "type": "object",
+          "properties": {
+            "human_intent": { "type": "string" },
+            "covenant_agreement": { "type": "boolean" },
+            "trust_score": { "type": "number", "minimum": 0, "maximum": 1 },
+            "user_context": {
+              "type": "object",
+              "properties": {
+                "location": { "type": "string" },
+                "preferred_language": { "type": "string" },
+                "execution_mode": { "type": "string", "enum": ["modular", "sequential"] },
+                "runtime": { "type": "string" },
+                "interchain": { "type": "string", "enum": ["enabled", "disabled"] },
+                "entropy_enabled": { "type": "boolean" }
+              }
+            }
+          }
+        },
+        "context": {
+          "type": "object",
+          "properties": {
+            "blockchain_state": {
+              "type": "object",
+              "properties": {
+                "ethereum": { "type": "object", "properties": { "block": { "type": "integer" }, "stateRoot": { "type": "string" } } },
+                "cosmos": { "type": "object", "properties": { "height": { "type": "integer" }, "stateRoot": { "type": "string" } } }
+              }
+            },
+            "environment": {
+              "type": "object",
+              "properties": {
+                "runtime": { "type": "string" },
+                "version": { "type": "string" },
+                "dependencies_loaded": { "type": "array", "items": { "type": "string" } },
+                "sovr_version": { "type": "string" }
+              }
+            }
+          }
+        },
+        "outputs": {
+          "type": "object",
+          "properties": {
+            "response": { "type": "string" },
+            "audit_log": {
+              "type": "object",
+              "properties": {
+                "timestamp": { "type": "string", "format": "date-time" },
+                "actions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "step": { "type": "string" },
+                      "model": { "type": "string" },
+                      "input": { "type": "string" },
+                      "chain": { "type": "string" },
+                      "action": { "type": "string" },
+                      "message": { "type": "string" },
+                      "metadata": { "type": "object" }
+                    }
+                  }
+                }
+              }
+            },
+            "trust_update": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        }
+      }
+    },
+    "access_policy": {
+      "type": "object",
+      "properties": {
+        "roles": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "permissions": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "policy_engine": { "type": "string", "enum": ["opa", "custom"] }
+      },
+      "required": ["roles", "permissions"]
+    },
+    "steps": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/step" },
+      "minItems": 1
+    },
+    "attestation": {
+      "type": "object",
+      "properties": {
+        "signers": { "type": "array", "items": { "type": "string", "pattern": "^0x[a-fA-F0-9]{40}$" } },
+        "signature": { "type": "string", "pattern": "^0x[a-fA-F0-9]+$" },
+        "hash": { "type": "string", "pattern": "^0x[a-fA-F0-9]{64}$" }
+      },
+      "required": ["signers", "signature", "hash"]
+    },
+    "invariants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "condition": { "$ref": "#/$defs/expr" },
+          "message": { "type": "string" },
+          "severity": { "type": "string", "enum": ["error", "warning", "info"] },
+          "verification_tool": { "type": "string", "enum": ["certora", "mythril"] }
+        },
+        "required": ["condition", "message"]
+      }
+    },
+    "execution_policy": {
+      "type": "object",
+      "properties": {
+        "max_runs_per_minute": { "type": "integer", "minimum": 1 },
+        "max_concurrent_runs": { "type": "integer", "minimum": 1 },
+        "priority": { "type": "string", "enum": ["low", "medium", "high"] }
+      },
+      "required": ["max_runs_per_minute", "max_concurrent_runs"]
+    },
+    "ui": {
+      "$ref": "#/$defs/ui"
+    },
+    "secrets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "source": { "type": "string", "enum": ["vault", "kms"] },
+          "key_id": { "type": "string" },
+          "scope": { "type": "string" }
+        },
+        "required": ["name", "source"]
+      }
+    },
+    "interchain": {
+      "type": "object",
+      "properties": {
+        "bridges": { "type": "array", "items": { "type": "string", "enum": ["evm", "cosmos"] } },
+        "contract_registry": {
+          "type": "object",
+          "properties": {
+            "evm": { "type": "string" },
+            "cosmos": { "type": "string" }
+          }
+        },
+        "sync_mode": { "type": "string", "enum": ["light-client", "full-node"] },
+        "attestation_frequency": { "type": "string" }
+      }
+    },
+    "zkp_kernel": {
+      "type": "object",
+      "properties": {
+        "circuit_id": { "type": "string" },
+        "proof_system": { "type": "string", "enum": ["halo2", "groth16"] },
+        "fields": { "type": "array", "items": { "type": "string" } },
+        "verifier_contract": { "type": "string", "pattern": "^0x[a-fA-F0-9]{40}$" }
+      }
+    },
+    "entropy_engine": {
+      "type": "object",
+      "properties": {
+        "contract": { "type": "string" },
+        "source": { "type": "string", "format": "uri" },
+        "functions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "description": { "type": "string" },
+              "inputs": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": { "type": "string" },
+                    "type": { "type": "string" }
+                  }
+                }
+              },
+              "outputs": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": { "type": "string" },
+                    "type": { "type": "string" }
+                  }
+                }
+              },
+              "stateMutability": { "type": "string", "enum": ["payable", "nonpayable"] }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "ui": {
+      "type": "object",
+      "properties": {
+        "framework": { "type": "string", "enum": ["react", "vue", "svelte"] },
+        "component": { "type": "string" },
+        "props": { "type": "object" },
+        "css": {
+          "type": "object",
+          "properties": {
+            "className": { "type": "string" },
+            "style": { "type": "object" }
+          }
+        }
+      },
+      "required": ["framework", "component"]
+    },
+    "expr": {
+      "type": "object",
+      "properties": {
+        "get": { "type": "string" },
+        "compare": {
+          "type": "object",
+          "properties": {
+            "left": { "$ref": "#/$defs/valueOrExpr" },
+            "op": { "type": "string", "enum": ["<", ">", "===", "<=", ">=", "!=="] },
+            "right": { "$ref": "#/$defs/valueOrExpr" }
+          }
+        }
+      }
+    },
+    "valueOrExpr": {
+      "anyOf": [
+        { "type": "string" },
+        { "type": "number" },
+        { "type": "boolean" },
+        { "type": "object" },
+        { "type": "array" },
+        { "type": "null" },
+        { "$ref": "#/$defs/expr" }
+      ]
+    },
+    "step": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string" },
+            "type": { "const": "assert" },
+            "condition": { "$ref": "#/$defs/expr" },
+            "message": { "type": "string" },
+            "ui": { "$ref": "#/$defs/ui" },
+            "execution_policy": { "type": "object", "properties": { "on_failure": { "type": "string", "enum": ["continue", "stop"] } } },
+            "secrets": { "type": "object" }
+          },
+          "required": ["id", "type", "condition", "message"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string" },
+            "type": { "const": "ai_infer" },
+            "model": { "type": "string" },
+            "input": { "$ref": "#/$defs/expr" },
+            "parameters": { "type": "object" },
+            "target": { "type": "string" },
+            "ui": { "$ref": "#/$defs/ui" },
+            "execution_policy": { "type": "object", "properties": { "on_failure": { "type": "string", "enum": ["continue", "stop"] } } },
+            "secrets": { "type": "object" }
+          },
+          "required": ["id", "type", "model", "input", "target"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string" },
+            "type": { "const": "blockchain_operation" },
+            "chain": { "type": "string", "enum": ["ethereum", "cosmos"] },
+            "action": { "type": "string" },
+            "params": { "type": "object" },
+            "target": { "type": "string" },
+            "ui": { "$ref": "#/$defs/ui" },
+            "execution_policy": { "type": "object", "properties": { "on_failure": { "type": "string", "enum": ["continue", "stop"] } } },
+            "secrets": { "type": "object" }
+          },
+          "required": ["id", "type", "chain", "action", "params", "target"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string" },
+            "type": { "const": "audit_log" },
+            "message": { "type": "string" },
+            "metadata": { "type": "object" },
+            "ui": { "$ref": "#/$defs/ui" },
+            "execution_policy": { "type": "object", "properties": { "on_failure": { "type": "string", "enum": ["continue", "stop"] } } },
+            "secrets": { "type": "object" }
+          },
+          "required": ["id", "type", "message"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string" },
+            "type": { "const": "propose_new_principle" },
+            "model": { "type": "string" },
+            "input": { "$ref": "#/$defs/expr" },
+            "parameters": { "type": "object" },
+            "target": { "type": "string" },
+            "ui": { "$ref": "#/$defs/ui" },
+            "execution_policy": { "type": "object", "properties": { "on_failure": { "type": "string", "enum": ["continue", "stop"] } } },
+            "secrets": { "type": "object" }
+          },
+          "required": ["id", "type", "model", "input", "target"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string" },
+            "type": { "const": "withdraw_covenant" },
+            "model": { "type": "string" },
+            "input": { "$ref": "#/$defs/expr" },
+            "parameters": { "type": "object" },
+            "target": { "type": "string" },
+            "ui": { "$ref": "#/$defs/ui" },
+            "execution_policy": { "type": "object", "properties": { "on_failure": { "type": "string", "enum": ["continue", "stop"] } } },
+            "secrets": { "type": "object" }
+          },
+          "required": ["id", "type", "model", "input", "target"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string" },
+            "type": { "const": "ritual_execute" },
+            "ritual": { "type": "string", "minLength": 1 },
+            "parameters": { "type": "object" },
+            "target": { "type": "string" },
+            "ui": { "$ref": "#/$defs/ui" },
+            "execution_policy": { "type": "object", "properties": { "on_failure": { "type": "string", "enum": ["continue", "stop"] } } },
+            "secrets": { "type": "object" }
+          },
+          "required": ["id", "type", "ritual", "target"]
+        }
+      ]
+    }
+  },
+  "additionalProperties": false
+}

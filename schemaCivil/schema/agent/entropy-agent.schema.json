@@ -1,0 +1,25 @@
+{
+  "$id": "https://sovereign-revelation.org/schema/nodes/entropy-agent.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "EntropyAgentNode",
+  "type": "object",
+  "description": "Agent for fetching and processing entropy from on-chain Entropy.sol contracts",
+  "properties": {
+    "id": { "type": "string", "default": "entropy-agent" },
+    "type": { "type": "string", "enum": ["agent"] },
+    "source": { "type": "string", "default": "contracts/Entropy.sol" },
+    "agent": {
+      "type": "object",
+      "properties": {
+        "role": { "type": "string", "default": "entropy" },
+        "contract": { "type": "string" },
+        "method": { "type": "string", "default": "getEntropy" },
+        "format": { "type": "string", "enum": ["hex", "int", "float"], "default": "int" },
+        "postProcess": { "type": "string", "description": "Optional JS or WASM callback" },
+        "cacheTTL": { "type": "integer", "default": 10 }
+      },
+      "required": ["contract", "method"]
+    }
+  },
+  "required": ["id", "type", "source", "agent"]
+}
